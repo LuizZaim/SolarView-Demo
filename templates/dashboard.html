@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarView Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@600&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Lexend', sans-serif; }
+        .chart-container { min-height: 400px; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-slate-900 transition-colors duration-300">
+
+    <header class="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto p-4 flex justify-between items-center">
+            <a href="/dashboard" class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">SolarView</h1>
+            </a>
+            <div class="flex items-center gap-4">
+                <a href="/settings" title="Configurações" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full p-2 transition-colors duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </a>
+                <a href="/logout" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 text-sm transition-colors duration-300">
+                    Sair
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <div class="text-center mb-8">
+            <h2 id="dashboard-title" class="text-3xl font-bold text-gray-800 dark:text-gray-100"></h2>
+            <p id="status-text" class="text-gray-500 dark:text-gray-400 mt-2"></p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg mb-8 flex flex-wrap justify-center items-center gap-4">
+            <label id="date-label" for="datePicker" class="font-semibold text-gray-700 dark:text-gray-200"></label>
+            <input type="date" id="datePicker" class="border-gray-300 dark:border-gray-600 dark:bg-slate-700 dark:text-gray-200 rounded-lg shadow-sm">
+            <button id="fetchDataBtn" class="px-5 py-2.5 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 flex items-center justify-center transition-all duration-300 transform hover:scale-105">
+                <span id="button-text"></span>
+                <svg id="button-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div id="kpi-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
+
+        <div id="ai-section" class="mb-8 hidden">
+            <button id="analyzeBtn" class="w-full px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
+                <span id="ai-button-text"></span>
+                <svg id="ai-button-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            </button>
+            <div id="ai-analysis-container" class="mt-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg hidden">
+                <h3 id="ai-title" class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2"></h3>
+                <p id="ai-analysis-text" class="text-gray-600 dark:text-gray-300"></p>
+            </div>
+        </div>
+
+        <div id="charts-container" class="space-y-8"></div>
+    </main>
+
+    <script>
+        let currentData = null;
+        let userSettings = { theme: 'system', language: 'pt' };
+
+        const translations = {
+            pt: {
+                dashboardTitle: "Dashboard de Análise", statusDefault: "Análise de performance energética",
+                dateLabel: "Selecione uma data:", analyzeButton: "Analisar Dia",
+                kpiEnergy: "Energia Total", kpiPeakPower: "Pico Solar", kpiBattery: "Bateria",
+                aiButton: "Analisar com IA", aiTitle: "Análise Inteligente do Dia", aiThinking: "A nossa IA está a pensar...",
+                chartPowerTitle: "<b>Fluxo de Potência</b>", chartTimeAxis: "Hora do Dia", chartPowerAxis: "Potência (W)",
+                traceSolar: "Geração Solar (W)", traceGrid: "Rede (W)",
+                chartBatteryTitle: "<b>Estado de Carga da Bateria (SOC)</b>", chartBatteryAxis: "Carga (%)",
+                statusAnalyzing: "Analisando dados para", statusError: "Erro ao carregar dados."
+            },
+            en: {
+                dashboardTitle: "Analysis Dashboard", statusDefault: "Energy performance analysis",
+                dateLabel: "Select a date:", analyzeButton: "Analyze Day",
+                kpiEnergy: "Total Energy", kpiPeakPower: "Solar Peak", kpiBattery: "Battery",
+                aiButton: "Analyze with AI", aiTitle: "Smart Analysis of the Day", aiThinking: "Our AI is thinking...",
+                chartPowerTitle: "<b>Power Flow</b>", chartTimeAxis: "Time of Day", chartPowerAxis: "Power (W)",
+                traceSolar: "Solar Generation (W)", traceGrid: "Grid (W)",
+                chartBatteryTitle: "<b>Battery State of Charge (SOC)</b>", chartBatteryAxis: "Charge (%)",
+                statusAnalyzing: "Analyzing data for", statusError: "Error loading data."
+            }
+        };
+
+        const datePicker = document.getElementById('datePicker');
+        const fetchDataBtn = document.getElementById('fetchDataBtn');
+        const kpiContainer = document.getElementById('kpi-container');
+        const chartsContainer = document.getElementById('charts-container');
+        const statusText = document.getElementById('status-text');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
+        const API_BASE_URL = 'http://127.0.0.1:5001';
+        const aiSection = document.getElementById('ai-section');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const aiButtonText = document.getElementById('ai-button-text');
+        const aiButtonSpinner = document.getElementById('ai-button-spinner');
+        const aiAnalysisContainer = document.getElementById('ai-analysis-container');
+        const aiAnalysisText = document.getElementById('ai-analysis-text');
+
+        datePicker.value = new Date().toISOString().split('T')[0];
+
+        function applyTranslations() {
+            const t = translations[userSettings.language] || translations.pt;
+            document.getElementById('dashboard-title').textContent = t.dashboardTitle;
+            statusText.textContent = t.statusDefault;
+            document.getElementById('date-label').textContent = t.dateLabel;
+            buttonText.textContent = t.analyzeButton;
+            aiButtonText.textContent = t.aiButton;
+            document.getElementById('ai-title').textContent = t.aiTitle;
+        }
+
+        async function loadAndApplySettings() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/get_settings`);
+                if (response.status === 401) { window.location.href = '/login'; return; }
+                userSettings = await response.json();
+                applyTranslations();
+            } catch (error) {
+                console.error("Erro ao carregar configurações:", error);
+            }
+        }
+
+        function createKpiCard(title, value, iconSvg) {
+            return `<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg flex items-center transition-transform transform hover:scale-105"><div class="bg-amber-100 dark:bg-slate-700 p-3 rounded-full mr-4">${iconSvg}</div><div><p class="text-gray-500 dark:text-gray-400 font-semibold">${title}</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${value}</p></div></div>`;
+        }
+
+        function showLoadingState(isLoading, elText, elSpinner) {
+            elText.parentElement.disabled = isLoading;
+            if (isLoading) { elText.classList.add('hidden'); elSpinner.classList.remove('hidden'); }
+            else { elText.classList.remove('hidden'); elSpinner.classList.add('hidden'); }
+        }
+
+        function showSkeletons() {
+            kpiContainer.innerHTML = `<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg animate-pulse"><div class="h-6 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div><div class="h-8 bg-gray-300 dark:bg-slate-600 rounded w-1/2 mt-2"></div></div>`.repeat(3);
+            chartsContainer.innerHTML = `<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div><div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>`;
+            aiSection.classList.add('hidden');
+            aiAnalysisContainer.classList.add('hidden');
+        }
+
+        function renderCharts(charts) {
+            chartsContainer.innerHTML = '';
+            const t = translations[userSettings.language] || translations.pt;
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
+            const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
+            const plotBgColor = isDarkMode ? '#1e293b' : '#ffffff';
+            const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
+
+            const powerChartDiv = document.createElement('div');
+            powerChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
+            chartsContainer.appendChild(powerChartDiv);
+            const traceSolar = { x: charts.timestamps, y: charts.series.Pac, mode: 'lines', name: t.traceSolar, line: {color: '#FBBF24', width: 3}, fill: 'tozeroy', fillcolor: 'rgba(251, 191, 36, 0.1)' };
+            const traceGrid = { x: charts.timestamps, y: charts.series.pgrid, mode: 'lines', name: t.traceGrid, line: {color: '#EF4444', dash: 'dot'} };
+            const powerLayout = { title: { text: t.chartPowerTitle, font: { color: fontColor } }, xaxis: {title: t.chartTimeAxis, color: fontColor, gridcolor: gridColor}, yaxis: {title: t.chartPowerAxis, color: fontColor, gridcolor: gridColor}, legend: {x: 0.01, y: 0.98, font: { color: fontColor }}, paper_bgcolor: paperColor, plot_bgcolor: plotBgColor, margin: { t: 50, b: 50, l: 60, r: 20 } };
+            Plotly.newPlot(powerChartDiv, [traceSolar, traceGrid], powerLayout, {responsive: true});
+
+            if (charts.series.Cbattery1) {
+                const batteryChartDiv = document.createElement('div');
+                batteryChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
+                chartsContainer.appendChild(batteryChartDiv);
+                const traceBattery = { x: charts.timestamps, y: charts.series.Cbattery1, mode: 'lines', name: t.traceBattery, line: {color: '#22C55E', width: 3}, fill: 'tozeroy', fillcolor: 'rgba(34, 197, 94, 0.1)' };
+                const batteryLayout = { title: { text: t.chartBatteryTitle, font: { color: fontColor } }, xaxis: {title: t.chartTimeAxis, color: fontColor, gridcolor: gridColor}, yaxis: {title: t.chartBatteryAxis, range: [0, 100], color: fontColor, gridcolor: gridColor}, paper_bgcolor: paperColor, plot_bgcolor: plotBgColor, margin: { t: 50, b: 50, l: 60, r: 20 } };
+                Plotly.newPlot(batteryChartDiv, [traceBattery], batteryLayout, {responsive: true});
+            }
+        }
+
+        async function renderDashboard() {
+            const selectedDate = datePicker.value;
+            if (!selectedDate) { return; }
+            statusText.textContent = `${translations[userSettings.language].statusAnalyzing} ${selectedDate}...`;
+            showLoadingState(true, buttonText, buttonSpinner);
+            showSkeletons();
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/data?date=${selectedDate}`);
+                if (response.status === 401) { window.location.href = '/login'; return; }
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+                    try { const errorJson = JSON.parse(errorText); if (errorJson.error) { errorMessage = errorJson.error; }
+                    } catch (e) { console.error("A resposta do servidor não foi JSON:", errorText); }
+                    throw new Error(errorMessage);
+                }
+                const data = await response.json();
+                currentData = data;
+                const t = translations[userSettings.language] || translations.pt;
+                const kpis = data.kpis;
+                kpiContainer.innerHTML = '';
+                kpiContainer.innerHTML += createKpiCard(t.kpiEnergy, `${kpis.total_energy} kWh`, '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>');
+                kpiContainer.innerHTML += createKpiCard(t.kpiPeakPower, `${kpis.peak_power} W`, '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>');
+                const socChange = kpis.soc_initial !== null ? `${kpis.soc_initial}% → ${kpis.soc_final}%` : 'N/D';
+                kpiContainer.innerHTML += createKpiCard(t.kpiBattery, socChange, '<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 10a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>');
+                renderCharts(data.charts);
+                statusText.textContent = `${t.statusDefault} para ${selectedDate}`;
+                aiSection.classList.remove('hidden');
+            } catch (error) {
+                console.error("Erro ao renderizar dashboard:", error);
+                statusText.textContent = translations[userSettings.language].statusError;
+                kpiContainer.innerHTML = '';
+                chartsContainer.innerHTML = `<p class="text-center text-red-600 dark:text-red-400 p-4 bg-red-100 dark:bg-slate-800 rounded-lg">${error.message}</p>`;
+            } finally {
+                showLoadingState(false, buttonText, buttonSpinner);
+            }
+        }
+
+        async function handleAiAnalysis() {
+            if (!currentData) return;
+            showLoadingState(true, aiButtonText, aiButtonSpinner);
+            aiAnalysisContainer.classList.remove('hidden');
+            aiAnalysisText.textContent = `${translations[userSettings.language].aiThinking}`;
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ kpis: currentData.kpis })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "A resposta da API de análise não foi bem-sucedida.");
+                }
+                const data = await response.json();
+                aiAnalysisText.textContent = data.analysis;
+            } catch (error) {
+                console.error("Erro na análise de IA:", error);
+                aiAnalysisText.textContent = error.message;
+            } finally {
+                showLoadingState(false, aiButtonText, aiButtonSpinner);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadAndApplySettings();
+            fetchDataBtn.addEventListener('click', renderDashboard);
+            analyzeBtn.addEventListener('click', handleAiAnalysis);
+            renderDashboard();
+        });
+    </script>
+</body>
+</html>
