@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Previsão Solar{% endblock %}
+
+{% block extra_css %}
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Adicionando alguns estilos básicos para a transição do tema */
+        body {
+            transition: background-color 0.3s ease;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.5rem;
+            background-color: #f3f4f6;
+            border-radius: 9999px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            z-index: 50;
+        }
+
+        .dark .dark-mode-toggle {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+
+        .dark-mode-toggle:hover {
+            opacity: 0.8;
+        }
+
+        .dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+
+        .dark .text-gray-800 {
+            color: #f9fafb !important;
+        }
+
+        .dark .text-gray-500 {
+            color: #d1d5db !important;
+        }
+
+        .dark .text-indigo-600 {
+            color: #6366f1 !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <main class="bg-gray-100 dark:bg-gray-900 min-h-screen p-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center gap-2 mb-8">
+                <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">SolarView</h1>
+            </div>
+
+            <a href="/dashboard" class="text-indigo-600 dark:text-indigo-400 hover:underline mb-6 inline-block">
+                ← Voltar ao Dashboard
+            </a>
+
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg animate-fade-in">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">
+                    Previsão de Geração Solar
+                </h2>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">
+                    Baseada na previsão do tempo dos próximos 7 dias.
+                </p>
+
+                <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+                    Energia Prevista (kWh) para os Próximos 7 Dias
+                </h2>
+
+                <div id="forecast-chart-container" class="chart-container" style="min-height: 400px;">
+                    </div>
+            </div>
+        </div>
+    </main>
+
+    <button id="dark-mode-toggle" class="dark-mode-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+    </button>
+
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchForecastData();
+            setupDarkModeToggle();
+        });
+
+        function setupDarkModeToggle() {
+            const toggleBtn = document.getElementById('dark-mode-toggle');
+            toggleBtn.addEventListener('click', () => {
+                const isDarkMode = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+                updateChartTheme();
+            });
+
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+
+        async function fetchForecastData() {
+            try {
+                const response = await fetch('/api/previsao');
+                if (!response.ok) {
+                    throw new Error(`Erro ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                renderForecastChart(data);
+            } catch (error) {
+                console.error("Erro ao carregar dados da previsão:", error);
+                const chartContainer = document.getElementById('forecast-chart-container');
+                chartContainer.innerHTML = '<p class="text-center text-red-500">Não foi possível carregar a previsão. Tente novamente mais tarde.</p>';
+            }
+        }
+
+        function renderForecastChart(data) {
+            const chartContainer = document.getElementById('forecast-chart-container');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const fontColor = isDarkMode ? '#f9fafb' : '#1f2937';
+            const paperColor = isDarkMode ? '#1f2937' : '#ffffff';
+            const plotColor = isDarkMode ? '#1a222e' : '#f8fafc';
+            const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+            const barColor = '#FBBF24';
+
+            const labels = data.map(item => item.dia);
+            const values = data.map(item => item.energia);
+            const tooltips = data.map(item => `Energia Prevista: ${item.energia} kWh<br>Clima: ${item.clima}`);
+
+            const trace = {
+                x: labels,
+                y: values,
+                type: 'bar',
+                name: 'Energia Prevista',
+                marker: {
+                    color: barColor,
+                    line: {
+                        color: 'rgba(251, 191, 36, 1.0)',
+                        width: 1
+                    }
+                },
+                hovertemplate: `<b>%{x}</b><br>%{text}<extra></extra>`,
+                text: tooltips,
+                textposition: 'none'
+            };
+
+            const layout = {
+                // Título removido daqui!
+                xaxis: {
+                    title: 'Dia da Semana',
+                    color: fontColor,
+                    gridcolor: gridColor,
+                    tickfont: {
+                        color: fontColor
+                    },
+                    zeroline: false,
+                    showgrid: false,
+                },
+                yaxis: {
+                    title: 'Energia (kWh)',
+                    color: fontColor,
+                    gridcolor: gridColor,
+                    tickfont: {
+                        color: fontColor
+                    },
+                    zeroline: false,
+                    showgrid: true,
+                },
+                legend: {
+                    x: 1,
+                    y: 1.05,
+                    font: { color: fontColor },
+                    bgcolor: 'rgba(0,0,0,0)'
+                },
+                paper_bgcolor: paperColor,
+                plot_bgcolor: plotColor,
+                margin: { t: 40, b: 60, l: 60, r: 20 }, // Margem superior ajustada para um valor menor
+                responsive: true,
+                bargap: 0.25,
+                transition: {
+                    duration: 500,
+                    easing: 'cubic-in-out'
+                }
+            };
+
+            Plotly.newPlot(chartContainer, [trace], layout, { displayModeBar: false });
+        }
+
+        function updateChartTheme() {
+            const chartContainer = document.getElementById('forecast-chart-container');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const fontColor = isDarkMode ? '#f9fafb' : '#1f2937';
+            const paperColor = isDarkMode ? '#1f2937' : '#ffffff';
+            const plotColor = isDarkMode ? '#1a222e' : '#f8fafc';
+            const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+
+            if (chartContainer._fullLayout) {
+                Plotly.relayout(chartContainer, {
+                    'xaxis.color': fontColor,
+                    'xaxis.gridcolor': gridColor,
+                    'xaxis.tickfont.color': fontColor,
+                    'yaxis.color': fontColor,
+                    'yaxis.gridcolor': gridColor,
+                    'yaxis.tickfont.color': fontColor,
+                    'legend.font.color': fontColor,
+                    'paper_bgcolor': paperColor,
+                    'plot_bgcolor': plotColor
+                });
+            }
+        }
+    </script>
+{% endblock %}

@@ -1,35 +1,281 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SolarView Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@600&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Lexend', sans-serif; }
-        .chart-container { min-height: 400px; }
-    </style>
-</head>
-<body class="bg-gray-100 dark:bg-slate-900 transition-colors duration-300">
+{% extends "base.html" %}
 
+{% block title %}SolarView Dashboard{% endblock %}
+
+{% block extra_css %}
+    <style>
+        /* Estilos aprimorados para o dashboard */
+        .mobile-optimized {
+            font-size: 16px; /* Previne zoom automático em iOS */
+        }
+
+        .chart-container {
+            min-height: 400px;
+            transition: all 0.3s ease;
+        }
+
+        /* Estilos para elementos focados (acessibilidade) */
+        .focused {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Responsividade para mobile */
+        @media (max-width: 768px) {
+            .chart-container {
+                min-height: 300px;
+            }
+
+            #kpi-container {
+                grid-template-columns: 1fr;
+            }
+
+            .text-3xl {
+                font-size: 1.875rem;
+            }
+
+            .p-4 {
+                padding: 1rem;
+            }
+
+            .p-8 {
+                padding: 1rem;
+            }
+        }
+
+        /* Modo de alto contraste */
+        .high-contrast {
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .high-contrast .bg-white {
+            background-color: #000000 !important;
+            border: 2px solid #ffffff;
+        }
+
+        .high-contrast .text-gray-800 {
+            color: #ffffff !important;
+        }
+
+        .high-contrast .bg-amber-400 {
+            background-color: #ffff00 !important;
+        }
+
+        .high-contrast .text-white {
+            color: #000000 !important;
+        }
+
+        /* Botões com foco */
+        button:focus, input:focus, select:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* Estados de loading */
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+
+        /* Transições suaves */
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        .transform {
+            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+        }
+
+        .scale-105 {
+            --tw-scale-x: 1.05;
+            --tw-scale-y: 1.05;
+        }
+
+        .hover\:scale-105:hover {
+            --tw-scale-x: 1.05;
+            --tw-scale-y: 1.05;
+        }
+
+        /* Cores escuras */
+        .dark .bg-white {
+            background-color: #1e293b;
+        }
+
+        .dark .text-gray-800 {
+            color: #f1f5f9;
+        }
+
+        .dark .text-gray-500 {
+            color: #94a3b8;
+        }
+
+        .dark .border-gray-300 {
+            border-color: #475569;
+        }
+
+        .dark .bg-gray-100 {
+            background-color: #334155;
+        }
+
+        /* Botão de fechar para a análise da IA */
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        .close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Notificações */
+        .notification {
+            max-width: 380px;
+            min-width: 320px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification.hide {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        .notification-success {
+            border-left: 4px solid #10B981;
+        }
+
+        .notification-warning {
+            border-left: 4px solid #F59E0B;
+        }
+
+        .notification-error {
+            border-left: 4px solid #EF4444;
+        }
+
+        .notification-info {
+            border-left: 4px solid #3B82F6;
+        }
+
+        .notification-icon-success { color: #10B981; }
+        .notification-icon-warning { color: #F59E0B; }
+        .notification-icon-error { color: #EF4444; }
+        .notification-icon-info { color: #3B82F6; }
+
+        .dark .notification-success {
+            background-color: #064E3B;
+            border-color: #10B981;
+        }
+
+        .dark .notification-warning {
+            background-color: #78350F;
+            border-color: #F59E0B;
+        }
+
+        .dark .notification-error {
+            background-color: #7F1D1D;
+            border-color: #EF4444;
+        }
+
+        .dark .notification-info {
+            background-color: #1E3A8A;
+            border-color: #3B82F6;
+        }
+
+        /* Ajustes específicos para a navegação em mobile */
+        @media (max-width: 768px) {
+            header .container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            header nav {
+                width: 100%;
+                flex-direction: column;
+                gap: 0.5rem;
+                margin-top: 1rem;
+                align-items: flex-start;
+            }
+
+            header nav a {
+                width: 100%;
+                text-align: center;
+            }
+
+            header .flex-grow {
+                display: none;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
     <header class="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10">
-        <div class="container mx-auto p-4 flex justify-between items-center">
-            <a href="/dashboard" class="flex items-center gap-2">
+        <div class="container mx-auto p-4 flex flex-wrap justify-between items-center">
+            <a href="/dashboard" class="flex items-center gap-2 mb-2 sm:mb-0">
                 <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
                 </div>
                 <h1 class="text-xl font-bold text-gray-800 dark:text-gray-100">SolarView</h1>
             </a>
-            <div class="flex items-center gap-4">
-                <a href="/settings" title="Configurações" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full p-2 transition-colors duration-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <nav class="flex flex-wrap gap-4 items-center">
+                <a href="/dashboard" class="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 text-sm transition-colors duration-300">
+                    Dashboard
                 </a>
-                <a href="/logout" class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 text-sm transition-colors duration-300">
+                <a href="/previsao" class="px-4 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 text-sm transition-colors duration-300">
+                    📊 Previsão Solar
+                </a>
+                <a href="/water-control" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
+                    💧 Controle de Água
+                </a>
+                <a href="/settings" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
+                    ⚙️ Configurações
+                </a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a href="/logout"
+                   class="px-4 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 text-sm transition-colors duration-300">
                     Sair
                 </a>
             </div>
@@ -38,18 +284,42 @@
 
     <main class="container mx-auto p-4 md:p-8">
         <div class="text-center mb-8">
-            <h2 id="dashboard-title" class="text-3xl font-bold text-gray-800 dark:text-gray-100"></h2>
-            <p id="status-text" class="text-gray-500 dark:text-gray-400 mt-2"></p>
+            <h2 id="dashboard-title" class="text-3xl font-bold text-gray-800 dark:text-gray-100">Dashboard de Análise</h2>
+            <p id="status-text" class="text-gray-500 dark:text-gray-400 mt-2">Análise de performance energética</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <h3 class="font-semibold text-gray-700 dark:text-gray-200">Favoritos:</h3>
+                    <div id="favorites-container" class="flex flex-wrap gap-2">
+                        </div>
+                </div>
+                <button id="add-favorite-btn"
+                        class="px-3 py-1 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition-colors">
+                    ★ Adicionar Favorito
+                </button>
+            </div>
+
+            <div class="mt-4">
+                <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Histórico Recente:</h3>
+                <div id="history-container" class="flex flex-wrap gap-2">
+                    </div>
+            </div>
         </div>
 
         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg mb-8 flex flex-wrap justify-center items-center gap-4">
-            <label id="date-label" for="datePicker" class="font-semibold text-gray-700 dark:text-gray-200"></label>
+            <label for="datePicker" class="font-semibold text-gray-700 dark:text-gray-200">Selecione uma </label>
             <input type="date" id="datePicker" class="border-gray-300 dark:border-gray-600 dark:bg-slate-700 dark:text-gray-200 rounded-lg shadow-sm">
-            <button id="fetchDataBtn" class="px-5 py-2.5 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 flex items-center justify-center transition-all duration-300 transform hover:scale-105">
-                <span id="button-text"></span>
-                <svg id="button-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <button id="fetchDataBtn"
+                    class="px-5 py-2.5 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 flex items-center justify-center transition-all duration-300 transform hover:scale-105">
+                <span id="button-text">Analisar Dia</span>
+                <svg id="button-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
                 </svg>
             </button>
         </div>
@@ -57,198 +327,926 @@
         <div id="kpi-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
 
         <div id="ai-section" class="mb-8 hidden">
-            <button id="analyzeBtn" class="w-full px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
-                <span id="ai-button-text"></span>
-                <svg id="ai-button-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <button id="analyzeBtn"
+                    class="w-full px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                          d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
+                          clip-rule="evenodd" />
+                </svg>
+                <span id="ai-button-text">Analisar com IA</span>
+                <svg id="ai-button-spinner" class="animate-spin h-5 w-5 text-white hidden"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
             </button>
-            <div id="ai-analysis-container" class="mt-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg hidden">
-                <h3 id="ai-title" class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2"></h3>
+            <div id="ai-analysis-container" class="mt-4 bg-white dark:bg-slate-800 p-6 rounded-xl shadow-lg hidden relative">
+                <button id="close-ai-btn" class="close-btn text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                <h3 id="ai-title" class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Análise Inteligente do Dia</h3>
                 <p id="ai-analysis-text" class="text-gray-600 dark:text-gray-300"></p>
+
+                <div id="comparison-chart" class="mt-4 chart-container"></div>
+
+                <div id="ai-recommendations-container" class="mt-4 space-y-2"></div>
             </div>
         </div>
 
         <div id="charts-container" class="space-y-8"></div>
     </main>
 
+    <div id="notifications-container" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
     <script>
+        // Código JavaScript aprimorado
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM carregado!');
+
+            // Definir data atual
+            const datePicker = document.getElementById('datePicker');
+            if (datePicker) {
+                datePicker.value = new Date().toISOString().split('T')[0];
+                console.log('Data definida:', datePicker.value);
+            }
+
+            // Adicionar evento ao botão de análise
+            const fetchDataBtn = document.getElementById('fetchDataBtn');
+            if (fetchDataBtn) {
+                fetchDataBtn.addEventListener('click', fetchDashboardData);
+                console.log('Evento adicionado ao botão Analisar Dia');
+            } else {
+                console.error('Botão Analisar Dia não encontrado!');
+            }
+
+            // Adicionar evento ao botão de IA
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            if (analyzeBtn) {
+                analyzeBtn.addEventListener('click', handleAiAnalysis);
+                console.log('Evento adicionado ao botão Analisar com IA');
+            }
+
+            // Adicionar evento ao botão de fechar análise da IA
+            const closeAiBtn = document.getElementById('close-ai-btn');
+            if (closeAiBtn) {
+                closeAiBtn.addEventListener('click', closeAiAnalysis);
+                console.log('Evento adicionado ao botão Fechar Análise IA');
+            }
+
+            // Adicionar evento ao botão de favoritos
+            const addFavoriteBtn = document.getElementById('add-favorite-btn');
+            if (addFavoriteBtn) {
+                addFavoriteBtn.addEventListener('click', addCurrentDateToFavorites);
+                console.log('Evento adicionado ao botão Adicionar Favorito');
+            }
+
+            // Carregar favoritos e histórico
+            loadFavorites();
+            loadHistory();
+
+            // Mostrar notificação de boas-vindas
+            setTimeout(() => {
+                showInfoNotification(
+                    'Bem-vindo ao SolarView!',
+                    'Sistema de monitoramento de energia solar ativado.',
+                    4000
+                );
+            }, 1000);
+        });
+
         let currentData = null;
-        let userSettings = { theme: 'system', language: 'pt' };
 
-        const translations = {
-            pt: {
-                dashboardTitle: "Dashboard de Análise", statusDefault: "Análise de performance energética",
-                dateLabel: "Selecione uma data:", analyzeButton: "Analisar Dia",
-                kpiEnergy: "Energia Total", kpiPeakPower: "Pico Solar", kpiBattery: "Bateria",
-                aiButton: "Analisar com IA", aiTitle: "Análise Inteligente do Dia", aiThinking: "A nossa IA está a pensar...",
-                chartPowerTitle: "<b>Fluxo de Potência</b>", chartTimeAxis: "Hora do Dia", chartPowerAxis: "Potência (W)",
-                traceSolar: "Geração Solar (W)", traceGrid: "Rede (W)",
-                chartBatteryTitle: "<b>Estado de Carga da Bateria (SOC)</b>", chartBatteryAxis: "Carga (%)",
-                statusAnalyzing: "Analisando dados para", statusError: "Erro ao carregar dados."
-            },
-            en: {
-                dashboardTitle: "Analysis Dashboard", statusDefault: "Energy performance analysis",
-                dateLabel: "Select a date:", analyzeButton: "Analyze Day",
-                kpiEnergy: "Total Energy", kpiPeakPower: "Solar Peak", kpiBattery: "Battery",
-                aiButton: "Analyze with AI", aiTitle: "Smart Analysis of the Day", aiThinking: "Our AI is thinking...",
-                chartPowerTitle: "<b>Power Flow</b>", chartTimeAxis: "Time of Day", chartPowerAxis: "Power (W)",
-                traceSolar: "Solar Generation (W)", traceGrid: "Grid (W)",
-                chartBatteryTitle: "<b>Battery State of Charge (SOC)</b>", chartBatteryAxis: "Charge (%)",
-                statusAnalyzing: "Analyzing data for", statusError: "Error loading data."
+        async function fetchDashboardData() {
+            console.log('Função fetchDashboardData chamada!');
+
+            const datePicker = document.getElementById('datePicker');
+            const selectedDate = datePicker ? datePicker.value : new Date().toISOString().split('T')[0];
+
+            console.log('Data selecionada:', selectedDate);
+
+            if (!selectedDate) {
+                alert('Por favor, selecione uma data!');
+                return;
             }
-        };
 
-        const datePicker = document.getElementById('datePicker');
-        const fetchDataBtn = document.getElementById('fetchDataBtn');
-        const kpiContainer = document.getElementById('kpi-container');
-        const chartsContainer = document.getElementById('charts-container');
-        const statusText = document.getElementById('status-text');
-        const buttonText = document.getElementById('button-text');
-        const buttonSpinner = document.getElementById('button-spinner');
-        const API_BASE_URL = 'http://127.0.0.1:5001';
-        const aiSection = document.getElementById('ai-section');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const aiButtonText = document.getElementById('ai-button-text');
-        const aiButtonSpinner = document.getElementById('ai-button-spinner');
-        const aiAnalysisContainer = document.getElementById('ai-analysis-container');
-        const aiAnalysisText = document.getElementById('ai-analysis-text');
+            // Mostrar estado de carregamento
+            showLoadingState(true);
+            showSkeletons();
 
-        datePicker.value = new Date().toISOString().split('T')[0];
-
-        function applyTranslations() {
-            const t = translations[userSettings.language] || translations.pt;
-            document.getElementById('dashboard-title').textContent = t.dashboardTitle;
-            statusText.textContent = t.statusDefault;
-            document.getElementById('date-label').textContent = t.dateLabel;
-            buttonText.textContent = t.analyzeButton;
-            aiButtonText.textContent = t.aiButton;
-            document.getElementById('ai-title').textContent = t.aiTitle;
-        }
-
-        async function loadAndApplySettings() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/get_settings`);
-                if (response.status === 401) { window.location.href = '/login'; return; }
-                userSettings = await response.json();
-                applyTranslations();
+                console.log('Fazendo requisição para /api/data?date=' + selectedDate);
+                const response = await fetch(`/api/data?date=${selectedDate}`);
+
+                console.log('Status da resposta:', response.status);
+
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Erro na resposta:', errorText);
+                    throw new Error(`Erro ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Dados recebidos:', data);
+                currentData = data;
+                renderDashboard(data);
+
+                // Mostrar notificação de sucesso
+                showSuccessNotification(
+                    'Dados Carregados',
+                    'Os dados do dia foram carregados com sucesso!',
+                    3000
+                );
+
+                // Verificar notificações automáticas
+                checkAutomaticNotifications(data.kpis);
+
             } catch (error) {
-                console.error("Erro ao carregar configurações:", error);
+                console.error('Erro ao buscar dados:', error);
+                showError(error.message);
+
+                // Mostrar notificação de erro
+                showErrorNotification(
+                    'Erro ao Carregar Dados',
+                    'Não foi possível carregar os dados. Tente novamente.',
+                    5000
+                );
+            } finally {
+                showLoadingState(false);
             }
         }
 
-        function createKpiCard(title, value, iconSvg) {
-            return `<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg flex items-center transition-transform transform hover:scale-105"><div class="bg-amber-100 dark:bg-slate-700 p-3 rounded-full mr-4">${iconSvg}</div><div><p class="text-gray-500 dark:text-gray-400 font-semibold">${title}</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${value}</p></div></div>`;
-        }
+        function showLoadingState(isLoading) {
+            const buttonText = document.getElementById('button-text');
+            const buttonSpinner = document.getElementById('button-spinner');
+            const fetchDataBtn = document.getElementById('fetchDataBtn');
 
-        function showLoadingState(isLoading, elText, elSpinner) {
-            elText.parentElement.disabled = isLoading;
-            if (isLoading) { elText.classList.add('hidden'); elSpinner.classList.remove('hidden'); }
-            else { elText.classList.remove('hidden'); elSpinner.classList.add('hidden'); }
+            if (buttonText && buttonSpinner && fetchDataBtn) {
+                if (isLoading) {
+                    buttonText.classList.add('hidden');
+                    buttonSpinner.classList.remove('hidden');
+                    fetchDataBtn.disabled = true;
+                } else {
+                    buttonText.classList.remove('hidden');
+                    buttonSpinner.classList.add('hidden');
+                    fetchDataBtn.disabled = false;
+                }
+            }
         }
 
         function showSkeletons() {
-            kpiContainer.innerHTML = `<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg animate-pulse"><div class="h-6 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div><div class="h-8 bg-gray-300 dark:bg-slate-600 rounded w-1/2 mt-2"></div></div>`.repeat(3);
-            chartsContainer.innerHTML = `<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div><div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>`;
-            aiSection.classList.add('hidden');
-            aiAnalysisContainer.classList.add('hidden');
+            const kpiContainer = document.getElementById('kpi-container');
+            const chartsContainer = document.getElementById('charts-container');
+
+            if (kpiContainer) {
+                kpiContainer.innerHTML = `
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg animate-pulse">
+                        <div class="h-6 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
+                        <div class="h-8 bg-gray-300 dark:bg-slate-600 rounded w-1/2 mt-2"></div>
+                    </div>`.repeat(3);
+            }
+
+            if (chartsContainer) {
+                chartsContainer.innerHTML = `
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>`;
+            }
+        }
+
+        function renderDashboard(data) {
+            renderKPIs(data.kpis);
+            renderCharts(data.charts);
+            updateStatusText();
+
+            // Mostrar seção de IA
+            const aiSection = document.getElementById('ai-section');
+            if (aiSection) {
+                aiSection.classList.remove('hidden');
+            }
+
+            // Esconder a análise da IA quando carregar novos dados
+            hideAiAnalysis();
+        }
+
+        function hideAiAnalysis() {
+            // Esconder o container de análise da IA
+            const aiAnalysisContainer = document.getElementById('ai-analysis-container');
+            if (aiAnalysisContainer) {
+                aiAnalysisContainer.classList.add('hidden');
+            }
+
+            // Resetar o texto do botão de IA
+            const aiButtonText = document.getElementById('ai-button-text');
+            const aiButtonSpinner = document.getElementById('ai-button-spinner');
+            if (aiButtonText && aiButtonSpinner) {
+                aiButtonText.classList.remove('hidden');
+                aiButtonSpinner.classList.add('hidden');
+                aiButtonText.textContent = 'Analisar com IA';
+            }
+        }
+
+        function closeAiAnalysis() {
+            // Esconder o container de análise da IA
+            const aiAnalysisContainer = document.getElementById('ai-analysis-container');
+            if (aiAnalysisContainer) {
+                aiAnalysisContainer.classList.add('hidden');
+            }
+
+            // Resetar o texto do botão de IA
+            const aiButtonText = document.getElementById('ai-button-text');
+            const aiButtonSpinner = document.getElementById('ai-button-spinner');
+            if (aiButtonText && aiButtonSpinner) {
+                aiButtonText.classList.remove('hidden');
+                aiButtonSpinner.classList.add('hidden');
+                aiButtonText.textContent = 'Analisar com IA';
+            }
+        }
+
+        function renderKPIs(kpis) {
+            const kpiContainer = document.getElementById('kpi-container');
+            if (!kpiContainer) return;
+
+            kpiContainer.innerHTML = '';
+
+            // KPI de Energia Total
+            const energyKpi = createKpiCard(
+                "Energia Total",
+                `${kpis.total_energy} kWh`,
+                '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>'
+            );
+
+            // KPI de Pico Solar
+            const peakKpi = createKpiCard(
+                "Pico Solar",
+                `${kpis.peak_power} W`,
+                '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>'
+            );
+
+            // KPI de Bateria
+            const socChange = kpis.soc_initial !== null ?
+                `${kpis.soc_initial}% → ${kpis.soc_final}%` : 'N/D';
+            const batteryKpi = createKpiCard(
+                "Bateria",
+                socChange,
+                '<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 10a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>'
+            );
+
+            kpiContainer.innerHTML = energyKpi + peakKpi + batteryKpi;
+        }
+
+        function createKpiCard(title, value, iconSvg) {
+            return `
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg flex items-center transition-transform transform hover:scale-105">
+                    <div class="bg-amber-100 dark:bg-slate-700 p-3 rounded-full mr-4">
+                        ${iconSvg}
+                    </div>
+                    <div>
+                        <p class="text-gray-500 dark:text-gray-400 font-semibold">${title}</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${value}</p>
+                    </div>
+                </div>
+            `;
         }
 
         function renderCharts(charts) {
+            const chartsContainer = document.getElementById('charts-container');
+            if (!chartsContainer) return;
+
             chartsContainer.innerHTML = '';
-            const t = translations[userSettings.language] || translations.pt;
+
+            // Gráfico de Fluxo de Potência
+            const powerChartDiv = document.createElement('div');
+            powerChartDiv.id = 'power-chart';
+            powerChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
+            chartsContainer.appendChild(powerChartDiv);
+
+            createPowerChart(powerChartDiv, charts);
+
+            // Verificar se existem dados da bateria e renderizar o gráfico
+            if (charts.series.Cbattery1 && charts.series.Cbattery1.length > 0) {
+                const batteryChartDiv = document.createElement('div');
+                batteryChartDiv.id = 'battery-chart';
+                batteryChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container mt-6';
+                chartsContainer.appendChild(batteryChartDiv);
+
+                createBatteryChart(batteryChartDiv, charts);
+            }
+        }
+
+        function createPowerChart(container, charts) {
             const isDarkMode = document.documentElement.classList.contains('dark');
             const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
             const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
-            const plotBgColor = isDarkMode ? '#1e293b' : '#ffffff';
             const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
 
-            const powerChartDiv = document.createElement('div');
-            powerChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
-            chartsContainer.appendChild(powerChartDiv);
-            const traceSolar = { x: charts.timestamps, y: charts.series.Pac, mode: 'lines', name: t.traceSolar, line: {color: '#FBBF24', width: 3}, fill: 'tozeroy', fillcolor: 'rgba(251, 191, 36, 0.1)' };
-            const traceGrid = { x: charts.timestamps, y: charts.series.pgrid, mode: 'lines', name: t.traceGrid, line: {color: '#EF4444', dash: 'dot'} };
-            const powerLayout = { title: { text: t.chartPowerTitle, font: { color: fontColor } }, xaxis: {title: t.chartTimeAxis, color: fontColor, gridcolor: gridColor}, yaxis: {title: t.chartPowerAxis, color: fontColor, gridcolor: gridColor}, legend: {x: 0.01, y: 0.98, font: { color: fontColor }}, paper_bgcolor: paperColor, plot_bgcolor: plotBgColor, margin: { t: 50, b: 50, l: 60, r: 20 } };
-            Plotly.newPlot(powerChartDiv, [traceSolar, traceGrid], powerLayout, {responsive: true});
+            const traceSolar = {
+                x: charts.timestamps,
+                y: charts.series.Pac,
+                mode: 'lines',
+                name: 'Geração Solar (W)',
+                line: { color: '#FBBF24', width: 3 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(251, 191, 36, 0.1)'
+            };
 
-            if (charts.series.Cbattery1) {
-                const batteryChartDiv = document.createElement('div');
-                batteryChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
-                chartsContainer.appendChild(batteryChartDiv);
-                const traceBattery = { x: charts.timestamps, y: charts.series.Cbattery1, mode: 'lines', name: t.traceBattery, line: {color: '#22C55E', width: 3}, fill: 'tozeroy', fillcolor: 'rgba(34, 197, 94, 0.1)' };
-                const batteryLayout = { title: { text: t.chartBatteryTitle, font: { color: fontColor } }, xaxis: {title: t.chartTimeAxis, color: fontColor, gridcolor: gridColor}, yaxis: {title: t.chartBatteryAxis, range: [0, 100], color: fontColor, gridcolor: gridColor}, paper_bgcolor: paperColor, plot_bgcolor: plotBgColor, margin: { t: 50, b: 50, l: 60, r: 20 } };
-                Plotly.newPlot(batteryChartDiv, [traceBattery], batteryLayout, {responsive: true});
-            }
+            const traceGrid = {
+                x: charts.timestamps,
+                y: charts.series.pgrid,
+                mode: 'lines',
+                name: 'Rede (W)',
+                line: { color: '#EF4444', dash: 'dot' }
+            };
+
+            const layout = {
+                title: {
+                    text: '<b>Fluxo de Potência</b>',
+                    font: { color: fontColor }
+                },
+                xaxis: {
+                    title: 'Hora do Dia',
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                yaxis: {
+                    title: 'Potência (W)',
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                legend: {
+                    x: 0.01,
+                    y: 0.98,
+                    font: { color: fontColor }
+                },
+                paper_bgcolor: paperColor,
+                plot_bgcolor: paperColor,
+                margin: { t: 50, b: 50, l: 60, r: 20 }
+            };
+
+            Plotly.newPlot(container, [traceSolar, traceGrid], layout, { responsive: true });
         }
 
-        async function renderDashboard() {
-            const selectedDate = datePicker.value;
-            if (!selectedDate) { return; }
-            statusText.textContent = `${translations[userSettings.language].statusAnalyzing} ${selectedDate}...`;
-            showLoadingState(true, buttonText, buttonSpinner);
-            showSkeletons();
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/data?date=${selectedDate}`);
-                if (response.status === 401) { window.location.href = '/login'; return; }
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    let errorMessage = `Erro ${response.status}: ${response.statusText}`;
-                    try { const errorJson = JSON.parse(errorText); if (errorJson.error) { errorMessage = errorJson.error; }
-                    } catch (e) { console.error("A resposta do servidor não foi JSON:", errorText); }
-                    throw new Error(errorMessage);
-                }
-                const data = await response.json();
-                currentData = data;
-                const t = translations[userSettings.language] || translations.pt;
-                const kpis = data.kpis;
-                kpiContainer.innerHTML = '';
-                kpiContainer.innerHTML += createKpiCard(t.kpiEnergy, `${kpis.total_energy} kWh`, '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>');
-                kpiContainer.innerHTML += createKpiCard(t.kpiPeakPower, `${kpis.peak_power} W`, '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>');
-                const socChange = kpis.soc_initial !== null ? `${kpis.soc_initial}% → ${kpis.soc_final}%` : 'N/D';
-                kpiContainer.innerHTML += createKpiCard(t.kpiBattery, socChange, '<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 10a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>');
-                renderCharts(data.charts);
-                statusText.textContent = `${t.statusDefault} para ${selectedDate}`;
-                aiSection.classList.remove('hidden');
-            } catch (error) {
-                console.error("Erro ao renderizar dashboard:", error);
-                statusText.textContent = translations[userSettings.language].statusError;
-                kpiContainer.innerHTML = '';
-                chartsContainer.innerHTML = `<p class="text-center text-red-600 dark:text-red-400 p-4 bg-red-100 dark:bg-slate-800 rounded-lg">${error.message}</p>`;
-            } finally {
-                showLoadingState(false, buttonText, buttonSpinner);
-            }
+        function createBatteryChart(container, charts) {
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
+            const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
+            const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
+
+            const traceBattery = {
+                x: charts.timestamps,
+                y: charts.series.Cbattery1,
+                mode: 'lines',
+                name: 'Estado da Bateria (%)',
+                line: { color: '#22C55E', width: 3 },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(34, 197, 94, 0.1)'
+            };
+
+            const layout = {
+                title: {
+                    text: '<b>Estado de Carga da Bateria (SOC)</b>',
+                    font: { color: fontColor }
+                },
+                xaxis: {
+                    title: 'Hora do Dia',
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                yaxis: {
+                    title: 'Carga (%)',
+                    range: [0, 100],
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                legend: {
+                    x: 0.01,
+                    y: 0.98,
+                    font: { color: fontColor }
+                },
+                paper_bgcolor: paperColor,
+                plot_bgcolor: paperColor,
+                margin: { t: 50, b: 50, l: 60, r: 20 }
+            };
+
+            Plotly.newPlot(container, [traceBattery], layout, { responsive: true });
         }
 
         async function handleAiAnalysis() {
-            if (!currentData) return;
-            showLoadingState(true, aiButtonText, aiButtonSpinner);
+            if (!currentData) {
+                alert('Por favor, analise os dados primeiro!');
+                return;
+            }
+
+            const aiButtonText = document.getElementById('ai-button-text');
+            const aiButtonSpinner = document.getElementById('ai-button-spinner');
+            const aiAnalysisContainer = document.getElementById('ai-analysis-container');
+            const aiAnalysisText = document.getElementById('ai-analysis-text');
+            const aiRecommendationsContainer = document.getElementById('ai-recommendations-container');
+            const datePicker = document.getElementById('datePicker');
+            const selectedDate = datePicker.value;
+
+            if (!aiButtonText || !aiButtonSpinner || !aiAnalysisContainer || !aiAnalysisText || !aiRecommendationsContainer) return;
+
+            // Mostrar estado de carregamento
+            aiButtonText.classList.add('hidden');
+            aiButtonSpinner.classList.remove('hidden');
             aiAnalysisContainer.classList.remove('hidden');
-            aiAnalysisText.textContent = `${translations[userSettings.language].aiThinking}`;
+            aiAnalysisText.textContent = 'A nossa IA está a pensar...';
+            aiRecommendationsContainer.innerHTML = ''; // Limpar recomendações antigas
+
             try {
-                const response = await fetch(`${API_BASE_URL}/api/analyze`, {
+                const response = await fetch('/api/analyze', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ kpis: currentData.kpis })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kpis: currentData.kpis, date: selectedDate })
                 });
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || "A resposta da API de análise não foi bem-sucedida.");
+                    throw new Error('Erro na análise de IA');
                 }
+
                 const data = await response.json();
                 aiAnalysisText.textContent = data.analysis;
+
+                // Chamar a função para criar o gráfico
+                createComparisonChart(data.chart_data);
+
+                // Renderizar as recomendações
+                renderRecommendations(data.recomendacoes);
+
+                // Mostrar notificação de sucesso
+                showSuccessNotification(
+                    'Análise Concluída',
+                    'A análise da IA foi gerada com sucesso!',
+                    3000
+                );
+
             } catch (error) {
-                console.error("Erro na análise de IA:", error);
-                aiAnalysisText.textContent = error.message;
+                console.error('Erro na análise de IA:', error);
+                aiAnalysisText.textContent = 'Erro ao gerar análise.';
+
+                // Mostrar notificação de erro
+                showErrorNotification(
+                    'Erro na Análise',
+                    'Não foi possível gerar a análise da IA. Tente novamente.',
+                    5000
+                );
             } finally {
-                showLoadingState(false, aiButtonText, aiButtonSpinner);
+                aiButtonText.classList.remove('hidden');
+                aiButtonSpinner.classList.add('hidden');
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadAndApplySettings();
-            fetchDataBtn.addEventListener('click', renderDashboard);
-            analyzeBtn.addEventListener('click', handleAiAnalysis);
-            renderDashboard();
-        });
+        // NOVA FUNÇÃO PARA CRIAR O GRÁFICO DE COMPARAÇÃO
+        function createComparisonChart(chartData) {
+            const container = document.getElementById('comparison-chart');
+            if (!container) return;
+
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
+            const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
+            const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
+
+            const trace = {
+                x: chartData.labels,
+                y: chartData.values,
+                type: 'bar',
+                marker: {
+                    color: ['#FBBF24', '#94a3b8']
+                },
+                hovertemplate: '<b>%{x}</b>: %{y} kWh<extra></extra>'
+            };
+
+            const layout = {
+                title: {
+                    text: '<b>Comparação de Energia Total</b>',
+                    font: { color: fontColor }
+                },
+                xaxis: {
+                    title: 'Período',
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                yaxis: {
+                    title: 'Energia (kWh)',
+                    color: fontColor,
+                    gridcolor: gridColor
+                },
+                paper_bgcolor: paperColor,
+                plot_bgcolor: paperColor,
+                margin: { t: 50, b: 50, l: 60, r: 20 }
+            };
+
+            Plotly.newPlot(container, [trace], layout, { responsive: true });
+        }
+
+        // NOVA FUNÇÃO PARA RENDERIZAR RECOMENDAÇÕES
+        function renderRecommendations(recommendations) {
+            const container = document.getElementById('ai-recommendations-container');
+            if (!container) return;
+
+            if (recommendations.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Nenhuma recomendação adicional para este dia.</p>`;
+                return;
+            }
+
+            container.innerHTML = recommendations.map(rec => `
+                <div class="flex items-start p-4 rounded-lg bg-gray-100 dark:bg-slate-700">
+                    <div class="flex-shrink-0 w-6 h-6 text-green-500 dark:text-green-400">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                    <p class="ml-3 text-gray-700 dark:text-gray-300 text-sm">${rec}</p>
+                </div>
+            `).join('');
+        }
+
+        function updateStatusText() {
+            const statusText = document.getElementById('status-text');
+            const datePicker = document.getElementById('datePicker');
+            if (statusText && datePicker) {
+                const selectedDate = datePicker.value;
+                statusText.textContent = `Análise de performance energética para ${selectedDate}`;
+            }
+        }
+
+        function showError(message) {
+            const kpiContainer = document.getElementById('kpi-container');
+            const chartsContainer = document.getElementById('charts-container');
+
+            if (kpiContainer) {
+                kpiContainer.innerHTML = `
+                    <div class="col-span-full bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-100 px-4 py-3 rounded-lg">
+                        <p><strong>Erro:</strong> ${message}</p>
+                    </div>
+                `;
+            }
+
+            if (chartsContainer) {
+                chartsContainer.innerHTML = '';
+            }
+        }
+
+        // --- Funções de Favoritos e Histórico ---
+
+        // Carregar favoritos do servidor
+        async function loadFavorites() {
+            try {
+                const response = await fetch('/api/favorites');
+                if (response.ok) {
+                    const favorites = await response.json();
+                    renderFavorites(favorites);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar favoritos:', error);
+            }
+        }
+
+        // Carregar histórico do servidor
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                if (response.ok) {
+                    const history = await response.json();
+                    renderHistory(history);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar histórico:', error);
+            }
+        }
+
+        // Renderizar favoritos na interface
+        function renderFavorites(favorites) {
+            const container = document.getElementById('favorites-container');
+            if (!container) return;
+
+            if (favorites.length === 0) {
+                container.innerHTML = '<span class="text-gray-400 text-sm">Nenhum favorito ainda</span>';
+                return;
+            }
+
+            container.innerHTML = favorites.map(date => `
+                <div class="flex items-center bg-amber-100 dark:bg-slate-700 px-2 py-1 rounded-lg">
+                    <button onclick="loadFavoriteDate('${date}')"
+                            class="text-amber-800 dark:text-amber-200 hover:underline text-sm">
+                        ${formatDateDisplay(date)}
+                    </button>
+                    <button onclick="removeFavorite('${date}')"
+                            class="ml-1 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200">
+                        ×
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Renderizar histórico na interface
+        function renderHistory(history) {
+            const container = document.getElementById('history-container');
+            if (!container) return;
+
+            if (history.length === 0) {
+                container.innerHTML = '<span class="text-gray-400 text-sm">Nenhum histórico ainda</span>';
+                return;
+            }
+
+            container.innerHTML = history.reverse().map(date => `
+                <button onclick="loadFavoriteDate('${date}')"
+                        class="px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+                    ${formatDateDisplay(date)}
+                </button>
+            `).join('');
+        }
+
+        // Formatar data para exibição
+        function formatDateDisplay(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                return 'Hoje';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Ontem';
+            } else {
+                return date.toLocaleDateString('pt-BR');
+            }
+        }
+
+        // Adicionar data atual aos favoritos
+        async function addCurrentDateToFavorites() {
+            const datePicker = document.getElementById('datePicker');
+            if (!datePicker) return;
+
+            const currentDate = datePicker.value;
+            if (!currentDate) {
+                alert('Por favor, selecione uma data primeiro!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: currentDate })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderFavorites(data.favorites);
+                    alert('Adicionado aos favoritos!');
+                } else {
+                    const error = await response.json();
+                    alert('Erro: ' + error.error);
+                }
+            } catch (error) {
+                console.error('Erro ao adicionar favorito:', error);
+                alert('Erro ao adicionar aos favoritos');
+            }
+        }
+
+        // Remover favorito
+        async function removeFavorite(date) {
+            try {
+                const response = await fetch(`/api/favorites/${date}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderFavorites(data.favorites);
+                }
+            } catch (error) {
+                console.error('Erro ao remover favorito:', error);
+            }
+        }
+
+        // Carregar data favorita
+        function loadFavoriteDate(date) {
+            const datePicker = document.getElementById('datePicker');
+            if (datePicker) {
+                datePicker.value = date;
+                // Simular clique no botão de análise
+                const fetchDataBtn = document.getElementById('fetchDataBtn');
+                if (fetchDataBtn) {
+                    fetchDataBtn.click();
+                }
+            }
+        }
+
+        // --- Sistema de Notificações ---
+
+        /**
+         * Mostra uma notificação para o usuário
+         * @param {string} type - Tipo da notificação: 'success', 'warning', 'error', 'info'
+         * @param {string} title - Título da notificação
+         * @param {string} message - Mensagem da notificação
+         * @param {number} duration - Duração em milissegundos (0 para permanente)
+         */
+        function showNotification(type, title, message, duration = 5000) {
+            const container = document.getElementById('notifications-container');
+            if (!container) return;
+
+            // Criar ID único para a notificação
+            const notificationId = 'notification-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            // Criar elemento da notificação
+            const notification = document.createElement('div');
+            notification.id = notificationId;
+            notification.className = `notification notification-${type} bg-white dark:bg-slate-800 rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden`;
+
+            // Ícone baseado no tipo
+            let iconHtml = '';
+            switch(type) {
+                case 'success':
+                    iconHtml = '<svg class="h-6 w-6 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                    break;
+                case 'warning':
+                    iconHtml = '<svg class="h-6 w-6 text-yellow-500 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+                    break;
+                case 'error':
+                    iconHtml = '<svg class="h-6 w-6 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+                    break;
+                default: // info
+                    iconHtml = '<svg class="h-6 w-6 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+            }
+
+            // Conteúdo da notificação
+            notification.innerHTML = `
+                <div class="p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            ${iconHtml}
+                        </div>
+                        <div class="ml-3 w-0 flex-1 pt-0.5">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">${title}</p>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">${message}</p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0 flex">
+                            <button id="close-${notificationId}" class="bg-white dark:bg-slate-700 rounded-md inline-flex text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 focus:outline-none">
+                                <span class="sr-only">Fechar</span>
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Adicionar notificação ao container
+            container.appendChild(notification);
+
+            // Forçar reflow para animação
+            notification.offsetHeight;
+
+            // Mostrar notificação com animação
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+
+            // Adicionar evento de fechamento
+            const closeBtn = document.getElementById(`close-${notificationId}`);
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    hideNotification(notificationId);
+                });
+            }
+
+            // Remover automaticamente após o tempo especificado
+            if (duration > 0) {
+                setTimeout(() => {
+                    hideNotification(notificationId);
+                }, duration);
+            }
+
+            return notificationId;
+        }
+
+        /**
+         * Esconde uma notificação específica
+         * @param {string} notificationId - ID da notificação a ser escondida
+         */
+        function hideNotification(notificationId) {
+            const notification = document.getElementById(notificationId);
+            if (notification) {
+                notification.classList.add('hide');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }
+
+        /**
+         * Mostra uma notificação de sucesso
+         * @param {string} title - Título da notificação
+         * @param {string} message - Mensagem da notificação
+         * @param {number} duration - Duração em milissegundos (padrão: 5000)
+         */
+        function showSuccessNotification(title, message, duration = 5000) {
+            return showNotification('success', title, message, duration);
+        }
+
+        /**
+         * Mostra uma notificação de aviso
+         * @param {string} title - Título da notificação
+         * @param {string} message - Mensagem da notificação
+         * @param {number} duration - Duração em milissegundos (padrão: 5000)
+         */
+        function showWarningNotification(title, message, duration = 5000) {
+            return showNotification('warning', title, message, duration);
+        }
+
+        /**
+         * Mostra uma notificação de erro
+         * @param {string} title - Título da notificação
+         * @param {string} message - Mensagem da notificação
+         * @param {number} duration - Duração em milissegundos (padrão: 5000)
+         */
+        function showErrorNotification(title, message, duration = 5000) {
+            return showNotification('error', title, message, duration);
+        }
+
+        /**
+         * Mostra uma notificação de informação
+         * @param {string} title - Título da notificação
+         * @param {string} message - Mensagem da notificação
+         * @param {number} duration - Duração em milissegundos (padrão: 5000)
+         */
+        function showInfoNotification(title, message, duration = 5000) {
+            return showNotification('info', title, message, duration);
+        }
+
+        /**
+         * Verifica condições para notificações automáticas
+         * @param {object} kpis - KPIs atuais
+         */
+        function checkAutomaticNotifications(kpis) {
+            if (!kpis) return;
+
+            const totalEnergy = kpis.total_energy || 0;
+            const peakPower = kpis.peak_power || 0;
+            const socInitial = kpis.soc_initial;
+            const socFinal = kpis.soc_final;
+
+            // Notificação de produção excelente
+            if (totalEnergy > 30) {
+                showSuccessNotification(
+                    'Excelente Produção!',
+                    `Hoje produziu ${totalEnergy} kWh - acima da média!`,
+                    8000
+                );
+            }
+
+            // Notificação de produção baixa
+            else if (totalEnergy < 5 && totalEnergy > 0) {
+                showWarningNotification(
+                    'Produção Baixa',
+                    `A produção de energia foi apenas ${totalEnergy} kWh hoje.`,
+                    8000
+                );
+            }
+
+            // Notificação de bateria baixa
+            if (socFinal !== null && socFinal < 20) {
+                showWarningNotification(
+                    'Bateria Baixa',
+                    `A bateria está com apenas ${socFinal}% de carga.`,
+                    10000
+                );
+            }
+
+            // Notificação de bateria cheia
+            else if (socFinal !== null && socFinal > 95) {
+                showSuccessNotification(
+                    'Bateria Cheia',
+                    `A bateria está com ${socFinal}% de carga - ótimo estado!`,
+                    6000
+                );
+            }
+
+            // Notificação de pico solar alto
+            if (peakPower > 5000) {
+                showSuccessNotification(
+                    'Pico Solar Excelente!',
+                    `Pico de geração alcançou ${peakPower} W - impressionante!`,
+                    7000
+                );
+            }
+        }
     </script>
-</body>
-</html>
+{% endblock %}
+#
