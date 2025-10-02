@@ -35,7 +35,6 @@ executor = ThreadPoolExecutor(max_workers=4)
 
 # 🔑 Chave da API OpenWeatherMap
 OPENWEATHER_API_KEY = "c032e66b7ccaf5e84bb2e4014e85ea38"
-
 # 📍 Coordenadas do sistema solar (ex: São Paulo)
 LATITUDE = -23.5505
 LONGITUDE = -46.6333
@@ -165,17 +164,16 @@ def get_weather_forecast_real(date: datetime) -> dict:
             'description': 'nublado'
         }
 
+# ✅ FUNÇÃO ATUALIZADA: Análise com foco em consumo noturno vs. oportunidade diurna
 def analise_consumo_vs_producao(df: pd.DataFrame, lang: str = 'pt') -> dict:
-    """
-    Analisa o consumo da rede em relação à produção solar e ao horário.
-    Retorna uma análise textual e uma sugestão.
-    """
     translations = {
         'pt': {
             'low_autonomy': "A autonomia da sua casa em relação à energia solar foi baixa hoje. Você consumiu cerca de {pgrid_percent:.0f}% da energia diretamente da rede, principalmente no final do dia.",
             'high_autonomy': "Sua casa foi altamente autossuficiente hoje! A maior parte do consumo foi atendida pela energia solar gerada.",
-            'night_consumption_alert': "Foi detectado um consumo significativo da rede durante a noite. Use a automação residencial para programar a carga de veículos elétricos ou outros aparelhos pesados para o período diurno, quando a energia é gratuita.",
             'no_grid_consumption': "Parabéns! Sua casa foi 100% autossuficiente hoje, utilizando apenas energia solar.",
+            'heavy_night_usage': "Você tem o hábito de usar aparelhos pesados à noite. Em dias ensolarados, tente programá-los entre 10h e 15h para aproveitar a energia solar gratuita.",
+            'daytime_opportunity': "Seu sistema gera muita energia durante o dia, mas você não está aproveitando totalmente. Considere ligar máquinas de lavar, secadoras ou aquecedores nesse período.",
+            'grid_dependent_evening': "Seu consumo aumenta significativamente após o pôr do sol. Isso reduz sua economia. Use a bateria ou desloque tarefas para o dia.",
             'no_data': "Não foi possível analisar o consumo da rede por falta de dados."
         }
     }
@@ -186,23 +184,75 @@ def analise_consumo_vs_producao(df: pd.DataFrame, lang: str = 'pt') -> dict:
             'analysis': "Sua casa foi altamente autossuficiente hoje! 85% da energia veio dos painéis solares.",
             'recommendation': "Parabéns! Continue assim."
         }
+
+    df = df.copy()
+    df['time'] = pd.to_datetime(df['time'])
+    df['hour'] = df['time'].dt.hour
+
     energy_generated_total = df['Pac'].sum() / (60 * 1000)
     energy_from_grid = df[df['pgrid'] > 0]['pgrid'].sum() / (60 * 1000)
     pgrid_percent = (energy_from_grid / (energy_from_grid + energy_generated_total)) * 100 if (energy_from_grid + energy_generated_total) > 0 else 0
+
     analysis_text = ""
     recommendation_text = ""
+
     if pgrid_percent > 20:
         analysis_text = t['low_autonomy'].format(pgrid_percent=pgrid_percent)
     elif pgrid_percent > 0:
         analysis_text = t['high_autonomy']
     else:
         analysis_text = t['no_grid_consumption']
-    df['time'] = pd.to_datetime(df['time'])
-    night_consumption_df = df[(df['time'].dt.hour >= 20) | (df['time'].dt.hour < 6)]
-    night_pgrid_consumption = night_consumption_df[night_consumption_df['pgrid'] > 0]['pgrid'].sum()
-    if night_pgrid_consumption > 100:
-        recommendation_text = t['night_consumption_alert']
+
+    # Análise de consumo noturno (20h–6h)
+    night_df = df[(df['hour'] >= 20) | (df['hour'] < 6)]
+    night_grid = night_df[night_df['pgrid'] > 0]['pgrid'].sum() / (60 * 1000)
+
+    # Análise de geração diurna (10h–15h)
+    day_peak_df = df[(df['hour'] >= 10) & (df['hour'] <= 15)]
+    day_solar_avg = day_peak_df['Pac'].mean() if not day_peak_df.empty else 0
+    day_grid_use = day_peak_df[day_peak_df['pgrid'] > 0]['pgrid'].sum() / (60 * 1000)
+
+    if night_grid > 2.0:
+        recommendation_text = t['heavy_night_usage']
+    elif day_solar_avg > 3000 and day_grid_use > 1.0:
+        recommendation_text = t['daytime_opportunity']
+    elif night_grid > 1.0:
+        recommendation_text = t['grid_dependent_evening']
+
     return {'analysis': analysis_text, 'recommendation': recommendation_text}
+
+# ✅ FUNÇÃO ATUALIZADA: Recomendações com foco em aparelhos pesados
+def gerar_recomendacoes(kpis: dict, merged_df: pd.DataFrame, lang: str = 'pt') -> list:
+    """Gera recomendações específicas baseadas nos dados"""
+    translations = {
+        'pt': {
+            'recommend_cleaning': "Considere limpar os painéis solares para melhorar a eficiência.",
+            'recommend_monitoring': "Monitore o consumo noturno para preservar a bateria.",
+            'recommend_increase_usage': "Excelente produção! Considere aumentar o consumo durante o dia.",
+            'recommend_energy_shift': "Tente deslocar o consumo para o período de maior geração solar.",
+            'recommend_program_heavy_devices': "Programe aparelhos pesados (máquina de lavar, forno, ar-condicionado) para funcionarem em dias ensolarados entre 10h e 15h."
+        }
+    }
+    t = translations.get(lang, translations['pt'])
+    recomendacoes = []
+    total_energy = kpis.get("total_energy", 0)
+    soc_final = kpis.get("soc_final")
+    peak_power = kpis.get("peak_power", 0)
+
+    if total_energy < 10:
+        recomendacoes.append(t['recommend_cleaning'])
+    if soc_final and soc_final < 20:
+        recomendacoes.append(t['recommend_monitoring'])
+    if total_energy > 30:
+        recomendacoes.append(t['recommend_increase_usage'])
+    if peak_power < 2000:
+        recomendacoes.append(t['recommend_energy_shift'])
+
+    # ✅ Sempre incluir recomendação comportamental se houver boa produção
+    if total_energy > 15:
+        recomendacoes.append(t['recommend_program_heavy_devices'])
+
+    return recomendacoes
 
 def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFrame, date_str: str, lang: str = 'pt') -> str:
     # Gera uma análise textual mais detalhada com base nos KPIs do dia
@@ -235,6 +285,7 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
     peak_power = kpis.get("peak_power", 0)
     soc_initial = kpis.get("soc_initial")
     soc_final = kpis.get("soc_final")
+
     analise_comparativa = ""
     temp_history = {date: data for date, data in history_data.items() if date != date_str and data.get('total_energy') is not None}
     if temp_history:
@@ -252,6 +303,7 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
                 analise_comparativa = t['comparison_below_avg'].format(total_energy=total_energy, delta_energy_percent=delta_energy_percent)
             else:
                 analise_comparativa = t['comparison_stable'].format(total_energy=total_energy)
+
     expected_energy = 20
     efficiency = (total_energy / expected_energy * 100) if expected_energy > 0 else 0
     if efficiency > 120:
@@ -262,6 +314,7 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
         analise_energia = t['moderate_efficiency']
     else:
         analise_energia = t['low_efficiency']
+
     analise_bateria = ""
     if soc_initial is not None and soc_final is not None:
         soc_delta = abs(soc_final - soc_initial)
@@ -273,10 +326,12 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
             analise_bateria = t['battery_stable'].format(soc_initial=soc_initial, soc_final=soc_final)
     else:
         analise_bateria = t['no_battery']
+
     analise_pico = t['great_peak'] if peak_power > 5000 else t['good_peak'] if peak_power > 3000 else t['low_peak']
     analise_consumo_dict = analise_consumo_vs_producao(merged_df, lang)
     analise_consumo_texto = analise_consumo_dict['analysis']
     recomendacao_consumo = analise_consumo_dict['recommendation']
+
     # 🔔 Previsão do tempo real
     date_obj = datetime.strptime(date_str, '%Y-%m-%d')
     clima_hoje = get_weather_forecast_real(date_obj)
@@ -290,6 +345,7 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
         analise_preditiva = f"Excelente notícia! Amanhã será um dia ensolarado com temperatura máxima de {clima_amanha['temp_max']}°C. Programe o uso de aparelhos pesados entre 10h e 15h para aproveitar ao máximo a energia solar gratuita!"
     else:
         analise_preditiva = f"Amanhã: {clima_amanha['description']}. Aproveite para otimizar o uso da energia solar."
+
     if total_energy > 25:
         conclusao = t['summary_excellent']
     elif total_energy > 15:
@@ -298,32 +354,8 @@ def gerar_analise_melhorada(kpis: dict, history_data: dict, merged_df: pd.DataFr
         conclusao = t['summary_ok']
     else:
         conclusao = t['summary_bad']
-    return f"{analise_comparativa} {analise_energia} {analise_bateria} {analise_pico} {analise_consumo_texto} {conclusao} {analise_preditiva} {recomendacao_consumo}".strip()
 
-def gerar_recomendacoes(kpis: dict, merged_df: pd.DataFrame, lang: str = 'pt') -> list:
-    """Gera recomendações específicas baseadas nos dados"""
-    translations = {
-        'pt': {
-            'recommend_cleaning': "Considere limpar os painéis solares para melhorar a eficiência.",
-            'recommend_monitoring': "Monitore o consumo noturno para preservar a bateria.",
-            'recommend_increase_usage': "Excelente produção! Considere aumentar o consumo durante o dia.",
-            'recommend_energy_shift': "Tente deslocar o consumo para o período de maior geração solar."
-        }
-    }
-    t = translations.get(lang, translations['pt'])
-    recomendacoes = []
-    total_energy = kpis.get("total_energy", 0)
-    soc_final = kpis.get("soc_final")
-    peak_power = kpis.get("peak_power", 0)
-    if total_energy < 10:
-        recomendacoes.append(t['recommend_cleaning'])
-    if soc_final and soc_final < 20:
-        recomendacoes.append(t['recommend_monitoring'])
-    if total_energy > 30:
-        recomendacoes.append(t['recommend_increase_usage'])
-    if peak_power < 2000:
-        recomendacoes.append(t['recommend_energy_shift'])
-    return recomendacoes
+    return f"{analise_comparativa} {analise_energia} {analise_bateria} {analise_pico} {analise_consumo_texto} {conclusao} {analise_preditiva} {recomendacao_consumo}".strip()
 
 def gerar_sugestoes_automacao(kpis: dict, merged_df: pd.DataFrame, lang: str = 'pt') -> list:
     """

@@ -1,92 +1,73 @@
 {% extends "base.html" %}
-
 {% block title %}SolarView Dashboard{% endblock %}
-
 {% block extra_css %}
     <style>
         /* Estilos aprimorados para o dashboard */
         .mobile-optimized {
             font-size: 16px; /* Previne zoom automático em iOS */
         }
-
         .chart-container {
             min-height: 400px;
             transition: all 0.3s ease;
         }
-
         /* Estilos para elementos focados (acessibilidade) */
         .focused {
             outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }
-
         /* Animações */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out;
         }
-
         /* Responsividade para mobile */
         @media (max-width: 768px) {
             .chart-container {
                 min-height: 300px;
             }
-
             #kpi-container {
                 grid-template-columns: 1fr;
             }
-
             .text-3xl {
                 font-size: 1.875rem;
             }
-
             .p-4 {
                 padding: 1rem;
             }
-
             .p-8 {
                 padding: 1rem;
             }
         }
-
         /* Modo de alto contraste */
         .high-contrast {
             background-color: #000000;
             color: #ffffff;
         }
-
         .high-contrast .bg-white {
             background-color: #000000 !important;
             border: 2px solid #ffffff;
         }
-
         .high-contrast .text-gray-800 {
             color: #ffffff !important;
         }
-
         .high-contrast .bg-amber-400 {
             background-color: #ffff00 !important;
         }
-
         .high-contrast .text-white {
             color: #000000 !important;
         }
-
         /* Botões com foco */
         button:focus, input:focus, select:focus {
             outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }
-
         /* Estados de loading */
         .animate-pulse {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-
         @keyframes pulse {
             0%, 100% {
                 opacity: 1;
@@ -95,49 +76,39 @@
                 opacity: .5;
             }
         }
-
         /* Transições suaves */
         .transition-all {
             transition-property: all;
             transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
             transition-duration: 150ms;
         }
-
         .transform {
             transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
         }
-
         .scale-105 {
             --tw-scale-x: 1.05;
             --tw-scale-y: 1.05;
         }
-
         .hover\:scale-105:hover {
             --tw-scale-x: 1.05;
             --tw-scale-y: 1.05;
         }
-
         /* Cores escuras */
         .dark .bg-white {
             background-color: #1e293b;
         }
-
         .dark .text-gray-800 {
             color: #f1f5f9;
         }
-
         .dark .text-gray-500 {
             color: #94a3b8;
         }
-
         .dark .border-gray-300 {
             border-color: #475569;
         }
-
         .dark .bg-gray-100 {
             background-color: #334155;
         }
-
         /* Botão de fechar para a análise da IA */
         .close-btn {
             position: absolute;
@@ -149,15 +120,12 @@
             padding: 0.5rem;
             border-radius: 0.25rem;
         }
-
         .close-btn:hover {
             background-color: rgba(0, 0, 0, 0.1);
         }
-
         .dark .close-btn:hover {
             background-color: rgba(255, 255, 255, 0.1);
         }
-
         /* Notificações */
         .notification {
             max-width: 380px;
@@ -167,65 +135,52 @@
             opacity: 0;
             transition: all 0.3s ease-in-out;
         }
-
         .notification.show {
             transform: translateX(0);
             opacity: 1;
         }
-
         .notification.hide {
             transform: translateX(100%);
             opacity: 0;
         }
-
         .notification-success {
             border-left: 4px solid #10B981;
         }
-
         .notification-warning {
             border-left: 4px solid #F59E0B;
         }
-
         .notification-error {
             border-left: 4px solid #EF4444;
         }
-
         .notification-info {
             border-left: 4px solid #3B82F6;
         }
-
         .notification-icon-success { color: #10B981; }
         .notification-icon-warning { color: #F59E0B; }
         .notification-icon-error { color: #EF4444; }
         .notification-icon-info { color: #3B82F6; }
-
         .dark .notification-success {
             background-color: #064E3B;
             border-color: #10B981;
         }
-
         .dark .notification-warning {
             background-color: #78350F;
             border-color: #F59E0B;
         }
-
         .dark .notification-error {
             background-color: #7F1D1D;
             border-color: #EF4444;
         }
-
         .dark .notification-info {
             background-color: #1E3A8A;
             border-color: #3B82F6;
         }
-
         /* Ajustes específicos para a navegação em mobile */
         @media (max-width: 768px) {
             header .container {
                 flex-direction: column;
                 align-items: flex-start;
             }
-
             header nav {
                 width: 100%;
                 flex-direction: column;
@@ -233,19 +188,78 @@
                 margin-top: 1rem;
                 align-items: flex-start;
             }
-
             header nav a {
                 width: 100%;
                 text-align: center;
             }
-
             header .flex-grow {
                 display: none;
             }
         }
+        /* ✅ Estilo para o texto da análise da IA */
+        #ai-analysis-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        /* ✅ Estilos para simular o app eWeLink */
+        .ewelink-simulation {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        .ewelink-simulation.dark {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        .ewelink-device-name {
+            font-weight: 600;
+            color: #1e40af;
+        }
+        .ewelink-status-on {
+            color: #059669;
+            font-weight: bold;
+        }
+        .ewelink-status-off {
+            color: #dc2626;
+        }
+        .ewelink-timestamp {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        .ewelink-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .solar-automation-btn {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+        .solar-automation-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+        }
+        .solar-automation-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 {% endblock %}
-
 {% block content %}
     <header class="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-10">
         <div class="container mx-auto p-4 flex flex-wrap justify-between items-center">
@@ -267,7 +281,7 @@
                     📊 Previsão Solar
                 </a>
                 <a href="/water-control" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
-                    💧 Controle de Água
+                    ⚙️ Controle de Equipamentos
                 </a>
                 <a href="/settings" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
                     ⚙️ Configurações
@@ -281,13 +295,11 @@
             </div>
         </div>
     </header>
-
     <main class="container mx-auto p-4 md:p-8">
         <div class="text-center mb-8">
             <h2 id="dashboard-title" class="text-3xl font-bold text-gray-800 dark:text-gray-100">Dashboard de Análise</h2>
             <p id="status-text" class="text-gray-500 dark:text-gray-400 mt-2">Análise de performance energética</p>
         </div>
-
         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg mb-6">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -300,14 +312,12 @@
                     ★ Adicionar Favorito
                 </button>
             </div>
-
             <div class="mt-4">
                 <h3 class="font-semibold text-gray-700 dark:text-gray-200 mb-2">Histórico Recente:</h3>
                 <div id="history-container" class="flex flex-wrap gap-2">
                     </div>
             </div>
         </div>
-
         <div class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg mb-8 flex flex-wrap justify-center items-center gap-4">
             <label for="datePicker" class="font-semibold text-gray-700 dark:text-gray-200">Selecione uma </label>
             <input type="date" id="datePicker" class="border-gray-300 dark:border-gray-600 dark:bg-slate-700 dark:text-gray-200 rounded-lg shadow-sm">
@@ -323,9 +333,7 @@
                 </svg>
             </button>
         </div>
-
         <div id="kpi-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
-
         <div id="ai-section" class="mb-8 hidden">
             <button id="analyzeBtn"
                     class="w-full px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 flex items-center justify-center gap-2 transition-colors duration-300">
@@ -351,32 +359,42 @@
                 </button>
                 <h3 id="ai-title" class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">Análise Inteligente do Dia</h3>
                 <p id="ai-analysis-text" class="text-gray-600 dark:text-gray-300"></p>
-
                 <div id="comparison-chart" class="mt-4 chart-container"></div>
-
                 <div id="ai-recommendations-container" class="mt-4 space-y-2"></div>
+                <!-- ✅ SEÇÃO DE AUTOMAÇÃO INTELIGENTE (SIMULAÇÃO eWeLink) -->
+                <div id="automation-section" class="hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⚡ Automação com eWeLink</h4>
+                    <button id="trigger-ewelink-btn" class="solar-automation-btn">
+                        <svg class="ewelink-icon" viewBox="0 0 24 24" fill="#fff">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        Ligar Máquina de Lavar
+                    </button>
+                    <p id="ewelink-status" class="mt-2 text-sm text-gray-500 dark:text-gray-400 min-h-[1.25rem]"></p>
+                    <div id="ewelink-log" class="ewelink-simulation mt-3 hidden">
+                        <div class="flex justify-between">
+                            <span class="ewelink-device-name">Máquina de Lavar – Sala de Serviço</span>
+                            <span id="log-status" class="ewelink-status-off">Desligado</span>
+                        </div>
+                        <div id="log-timestamp" class="ewelink-timestamp mt-1">—</div>
+                    </div>
+                </div>
             </div>
         </div>
-
         <div id="charts-container" class="space-y-8"></div>
     </main>
-
     <div id="notifications-container" class="fixed top-20 right-4 z-50 space-y-2"></div>
-
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-
     <script>
         // Código JavaScript aprimorado
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM carregado!');
-
             // Definir data atual
             const datePicker = document.getElementById('datePicker');
             if (datePicker) {
                 datePicker.value = new Date().toISOString().split('T')[0];
                 console.log('Data definida:', datePicker.value);
             }
-
             // Adicionar evento ao botão de análise
             const fetchDataBtn = document.getElementById('fetchDataBtn');
             if (fetchDataBtn) {
@@ -385,32 +403,27 @@
             } else {
                 console.error('Botão Analisar Dia não encontrado!');
             }
-
             // Adicionar evento ao botão de IA
             const analyzeBtn = document.getElementById('analyzeBtn');
             if (analyzeBtn) {
                 analyzeBtn.addEventListener('click', handleAiAnalysis);
                 console.log('Evento adicionado ao botão Analisar com IA');
             }
-
             // Adicionar evento ao botão de fechar análise da IA
             const closeAiBtn = document.getElementById('close-ai-btn');
             if (closeAiBtn) {
                 closeAiBtn.addEventListener('click', closeAiAnalysis);
                 console.log('Evento adicionado ao botão Fechar Análise IA');
             }
-
             // Adicionar evento ao botão de favoritos
             const addFavoriteBtn = document.getElementById('add-favorite-btn');
             if (addFavoriteBtn) {
                 addFavoriteBtn.addEventListener('click', addCurrentDateToFavorites);
                 console.log('Evento adicionado ao botão Adicionar Favorito');
             }
-
             // Carregar favoritos e histórico
             loadFavorites();
             loadHistory();
-
             // Mostrar notificação de boas-vindas
             setTimeout(() => {
                 showInfoNotification(
@@ -420,62 +433,47 @@
                 );
             }, 1000);
         });
-
         let currentData = null;
-
         async function fetchDashboardData() {
             console.log('Função fetchDashboardData chamada!');
-
             const datePicker = document.getElementById('datePicker');
             const selectedDate = datePicker ? datePicker.value : new Date().toISOString().split('T')[0];
-
             console.log('Data selecionada:', selectedDate);
-
             if (!selectedDate) {
                 alert('Por favor, selecione uma data!');
                 return;
             }
-
             // Mostrar estado de carregamento
             showLoadingState(true);
             showSkeletons();
-
             try {
                 console.log('Fazendo requisição para /api/data?date=' + selectedDate);
                 const response = await fetch(`/api/data?date=${selectedDate}`);
-
                 console.log('Status da resposta:', response.status);
-
                 if (response.status === 401) {
                     window.location.href = '/login';
                     return;
                 }
-
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Erro na resposta:', errorText);
                     throw new Error(`Erro ${response.status}: ${response.statusText}`);
                 }
-
                 const data = await response.json();
                 console.log('Dados recebidos:', data);
                 currentData = data;
                 renderDashboard(data);
-
                 // Mostrar notificação de sucesso
                 showSuccessNotification(
                     'Dados Carregados',
                     'Os dados do dia foram carregados com sucesso!',
                     3000
                 );
-
                 // Verificar notificações automáticas
                 checkAutomaticNotifications(data.kpis);
-
             } catch (error) {
                 console.error('Erro ao buscar dados:', error);
                 showError(error.message);
-
                 // Mostrar notificação de erro
                 showErrorNotification(
                     'Erro ao Carregar Dados',
@@ -486,12 +484,10 @@
                 showLoadingState(false);
             }
         }
-
         function showLoadingState(isLoading) {
             const buttonText = document.getElementById('button-text');
             const buttonSpinner = document.getElementById('button-spinner');
             const fetchDataBtn = document.getElementById('fetchDataBtn');
-
             if (buttonText && buttonSpinner && fetchDataBtn) {
                 if (isLoading) {
                     buttonText.classList.add('hidden');
@@ -504,11 +500,9 @@
                 }
             }
         }
-
         function showSkeletons() {
             const kpiContainer = document.getElementById('kpi-container');
             const chartsContainer = document.getElementById('charts-container');
-
             if (kpiContainer) {
                 kpiContainer.innerHTML = `
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg animate-pulse">
@@ -516,36 +510,30 @@
                         <div class="h-8 bg-gray-300 dark:bg-slate-600 rounded w-1/2 mt-2"></div>
                     </div>`.repeat(3);
             }
-
             if (chartsContainer) {
                 chartsContainer.innerHTML = `
                     <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>
                     <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg animate-pulse chart-container"></div>`;
             }
         }
-
         function renderDashboard(data) {
             renderKPIs(data.kpis);
             renderCharts(data.charts);
             updateStatusText();
-
             // Mostrar seção de IA
             const aiSection = document.getElementById('ai-section');
             if (aiSection) {
                 aiSection.classList.remove('hidden');
             }
-
             // Esconder a análise da IA quando carregar novos dados
             hideAiAnalysis();
         }
-
         function hideAiAnalysis() {
             // Esconder o container de análise da IA
             const aiAnalysisContainer = document.getElementById('ai-analysis-container');
             if (aiAnalysisContainer) {
                 aiAnalysisContainer.classList.add('hidden');
             }
-
             // Resetar o texto do botão de IA
             const aiButtonText = document.getElementById('ai-button-text');
             const aiButtonSpinner = document.getElementById('ai-button-spinner');
@@ -555,14 +543,12 @@
                 aiButtonText.textContent = 'Analisar com IA';
             }
         }
-
         function closeAiAnalysis() {
             // Esconder o container de análise da IA
             const aiAnalysisContainer = document.getElementById('ai-analysis-container');
             if (aiAnalysisContainer) {
                 aiAnalysisContainer.classList.add('hidden');
             }
-
             // Resetar o texto do botão de IA
             const aiButtonText = document.getElementById('ai-button-text');
             const aiButtonSpinner = document.getElementById('ai-button-spinner');
@@ -572,27 +558,22 @@
                 aiButtonText.textContent = 'Analisar com IA';
             }
         }
-
         function renderKPIs(kpis) {
             const kpiContainer = document.getElementById('kpi-container');
             if (!kpiContainer) return;
-
             kpiContainer.innerHTML = '';
-
             // KPI de Energia Total
             const energyKpi = createKpiCard(
                 "Energia Total",
                 `${kpis.total_energy} kWh`,
                 '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>'
             );
-
             // KPI de Pico Solar
             const peakKpi = createKpiCard(
                 "Pico Solar",
                 `${kpis.peak_power} W`,
                 '<svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>'
             );
-
             // KPI de Bateria
             const socChange = kpis.soc_initial !== null ?
                 `${kpis.soc_initial}% → ${kpis.soc_final}%` : 'N/D';
@@ -601,10 +582,8 @@
                 socChange,
                 '<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 10a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>'
             );
-
             kpiContainer.innerHTML = energyKpi + peakKpi + batteryKpi;
         }
-
         function createKpiCard(title, value, iconSvg) {
             return `
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-lg flex items-center transition-transform transform hover:scale-105">
@@ -618,38 +597,30 @@
                 </div>
             `;
         }
-
         function renderCharts(charts) {
             const chartsContainer = document.getElementById('charts-container');
             if (!chartsContainer) return;
-
             chartsContainer.innerHTML = '';
-
             // Gráfico de Fluxo de Potência
             const powerChartDiv = document.createElement('div');
             powerChartDiv.id = 'power-chart';
             powerChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container';
             chartsContainer.appendChild(powerChartDiv);
-
             createPowerChart(powerChartDiv, charts);
-
             // Verificar se existem dados da bateria e renderizar o gráfico
             if (charts.series.Cbattery1 && charts.series.Cbattery1.length > 0) {
                 const batteryChartDiv = document.createElement('div');
                 batteryChartDiv.id = 'battery-chart';
                 batteryChartDiv.className = 'bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg chart-container mt-6';
                 chartsContainer.appendChild(batteryChartDiv);
-
                 createBatteryChart(batteryChartDiv, charts);
             }
         }
-
         function createPowerChart(container, charts) {
             const isDarkMode = document.documentElement.classList.contains('dark');
             const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
             const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
             const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
-
             const traceSolar = {
                 x: charts.timestamps,
                 y: charts.series.Pac,
@@ -659,7 +630,6 @@
                 fill: 'tozeroy',
                 fillcolor: 'rgba(251, 191, 36, 0.1)'
             };
-
             const traceGrid = {
                 x: charts.timestamps,
                 y: charts.series.pgrid,
@@ -667,7 +637,6 @@
                 name: 'Rede (W)',
                 line: { color: '#EF4444', dash: 'dot' }
             };
-
             const layout = {
                 title: {
                     text: '<b>Fluxo de Potência</b>',
@@ -692,16 +661,13 @@
                 plot_bgcolor: paperColor,
                 margin: { t: 50, b: 50, l: 60, r: 20 }
             };
-
             Plotly.newPlot(container, [traceSolar, traceGrid], layout, { responsive: true });
         }
-
         function createBatteryChart(container, charts) {
             const isDarkMode = document.documentElement.classList.contains('dark');
             const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
             const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
             const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
-
             const traceBattery = {
                 x: charts.timestamps,
                 y: charts.series.Cbattery1,
@@ -711,7 +677,6 @@
                 fill: 'tozeroy',
                 fillcolor: 'rgba(34, 197, 94, 0.1)'
             };
-
             const layout = {
                 title: {
                     text: '<b>Estado de Carga da Bateria (SOC)</b>',
@@ -737,16 +702,13 @@
                 plot_bgcolor: paperColor,
                 margin: { t: 50, b: 50, l: 60, r: 20 }
             };
-
             Plotly.newPlot(container, [traceBattery], layout, { responsive: true });
         }
-
         async function handleAiAnalysis() {
             if (!currentData) {
                 alert('Por favor, analise os dados primeiro!');
                 return;
             }
-
             const aiButtonText = document.getElementById('ai-button-text');
             const aiButtonSpinner = document.getElementById('ai-button-spinner');
             const aiAnalysisContainer = document.getElementById('ai-analysis-container');
@@ -754,47 +716,37 @@
             const aiRecommendationsContainer = document.getElementById('ai-recommendations-container');
             const datePicker = document.getElementById('datePicker');
             const selectedDate = datePicker.value;
-
             if (!aiButtonText || !aiButtonSpinner || !aiAnalysisContainer || !aiAnalysisText || !aiRecommendationsContainer) return;
-
             // Mostrar estado de carregamento
             aiButtonText.classList.add('hidden');
             aiButtonSpinner.classList.remove('hidden');
             aiAnalysisContainer.classList.remove('hidden');
             aiAnalysisText.textContent = 'A nossa IA está a pensar...';
             aiRecommendationsContainer.innerHTML = ''; // Limpar recomendações antigas
-
             try {
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ kpis: currentData.kpis, date: selectedDate })
                 });
-
                 if (!response.ok) {
                     throw new Error('Erro na análise de IA');
                 }
-
                 const data = await response.json();
                 aiAnalysisText.textContent = data.analysis;
-
                 // Chamar a função para criar o gráfico
                 createComparisonChart(data.chart_data);
-
                 // Renderizar as recomendações
                 renderRecommendations(data.recomendacoes);
-
                 // Mostrar notificação de sucesso
                 showSuccessNotification(
                     'Análise Concluída',
                     'A análise da IA foi gerada com sucesso!',
                     3000
                 );
-
             } catch (error) {
                 console.error('Erro na análise de IA:', error);
                 aiAnalysisText.textContent = 'Erro ao gerar análise.';
-
                 // Mostrar notificação de erro
                 showErrorNotification(
                     'Erro na Análise',
@@ -806,17 +758,14 @@
                 aiButtonSpinner.classList.add('hidden');
             }
         }
-
         // NOVA FUNÇÃO PARA CRIAR O GRÁFICO DE COMPARAÇÃO
         function createComparisonChart(chartData) {
             const container = document.getElementById('comparison-chart');
             if (!container) return;
-
             const isDarkMode = document.documentElement.classList.contains('dark');
             const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
             const paperColor = isDarkMode ? '#1e293b' : '#ffffff';
             const gridColor = isDarkMode ? '#475569' : '#E5E7EB';
-
             const trace = {
                 x: chartData.labels,
                 y: chartData.values,
@@ -826,7 +775,6 @@
                 },
                 hovertemplate: '<b>%{x}</b>: %{y} kWh<extra></extra>'
             };
-
             const layout = {
                 title: {
                     text: '<b>Comparação de Energia Total</b>',
@@ -846,20 +794,24 @@
                 plot_bgcolor: paperColor,
                 margin: { t: 50, b: 50, l: 60, r: 20 }
             };
-
             Plotly.newPlot(container, [trace], layout, { responsive: true });
         }
-
-        // NOVA FUNÇÃO PARA RENDERIZAR RECOMENDAÇÕES
+        // ✅ FUNÇÃO ATUALIZADA PARA RENDERIZAR RECOMENDAÇÕES E MOSTRAR BOTÃO
         function renderRecommendations(recommendations) {
             const container = document.getElementById('ai-recommendations-container');
-            if (!container) return;
+            const automationSection = document.getElementById('automation-section');
+            if (!container || !automationSection) return;
+
+            // Verifica se alguma recomendação menciona aparelhos pesados, ensolarado, etc.
+            const showAutomation = recommendations.some(rec =>
+                /máquina|aparelhos pesados|10h|ensolarado|entre 10h e 15h/i.test(rec)
+            );
+            automationSection.classList.toggle('hidden', !showAutomation);
 
             if (recommendations.length === 0) {
                 container.innerHTML = `<p class="text-gray-500 dark:text-gray-400">Nenhuma recomendação adicional para este dia.</p>`;
                 return;
             }
-
             container.innerHTML = recommendations.map(rec => `
                 <div class="flex items-start p-4 rounded-lg bg-gray-100 dark:bg-slate-700">
                     <div class="flex-shrink-0 w-6 h-6 text-green-500 dark:text-green-400">
@@ -871,7 +823,6 @@
                 </div>
             `).join('');
         }
-
         function updateStatusText() {
             const statusText = document.getElementById('status-text');
             const datePicker = document.getElementById('datePicker');
@@ -880,11 +831,9 @@
                 statusText.textContent = `Análise de performance energética para ${selectedDate}`;
             }
         }
-
         function showError(message) {
             const kpiContainer = document.getElementById('kpi-container');
             const chartsContainer = document.getElementById('charts-container');
-
             if (kpiContainer) {
                 kpiContainer.innerHTML = `
                     <div class="col-span-full bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-100 px-4 py-3 rounded-lg">
@@ -892,14 +841,11 @@
                     </div>
                 `;
             }
-
             if (chartsContainer) {
                 chartsContainer.innerHTML = '';
             }
         }
-
         // --- Funções de Favoritos e Histórico ---
-
         // Carregar favoritos do servidor
         async function loadFavorites() {
             try {
@@ -912,7 +858,6 @@
                 console.error('Erro ao carregar favoritos:', error);
             }
         }
-
         // Carregar histórico do servidor
         async function loadHistory() {
             try {
@@ -925,17 +870,14 @@
                 console.error('Erro ao carregar histórico:', error);
             }
         }
-
         // Renderizar favoritos na interface
         function renderFavorites(favorites) {
             const container = document.getElementById('favorites-container');
             if (!container) return;
-
             if (favorites.length === 0) {
                 container.innerHTML = '<span class="text-gray-400 text-sm">Nenhum favorito ainda</span>';
                 return;
             }
-
             container.innerHTML = favorites.map(date => `
                 <div class="flex items-center bg-amber-100 dark:bg-slate-700 px-2 py-1 rounded-lg">
                     <button onclick="loadFavoriteDate('${date}')"
@@ -949,17 +891,14 @@
                 </div>
             `).join('');
         }
-
         // Renderizar histórico na interface
         function renderHistory(history) {
             const container = document.getElementById('history-container');
             if (!container) return;
-
             if (history.length === 0) {
                 container.innerHTML = '<span class="text-gray-400 text-sm">Nenhum histórico ainda</span>';
                 return;
             }
-
             container.innerHTML = history.reverse().map(date => `
                 <button onclick="loadFavoriteDate('${date}')"
                         class="px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 text-sm rounded hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
@@ -967,14 +906,12 @@
                 </button>
             `).join('');
         }
-
         // Formatar data para exibição
         function formatDateDisplay(dateString) {
             const date = new Date(dateString);
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
-
             if (date.toDateString() === today.toDateString()) {
                 return 'Hoje';
             } else if (date.toDateString() === yesterday.toDateString()) {
@@ -983,25 +920,21 @@
                 return date.toLocaleDateString('pt-BR');
             }
         }
-
         // Adicionar data atual aos favoritos
         async function addCurrentDateToFavorites() {
             const datePicker = document.getElementById('datePicker');
             if (!datePicker) return;
-
             const currentDate = datePicker.value;
             if (!currentDate) {
                 alert('Por favor, selecione uma data primeiro!');
                 return;
             }
-
             try {
                 const response = await fetch('/api/favorites', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ date: currentDate })
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     renderFavorites(data.favorites);
@@ -1015,14 +948,12 @@
                 alert('Erro ao adicionar aos favoritos');
             }
         }
-
         // Remover favorito
         async function removeFavorite(date) {
             try {
                 const response = await fetch(`/api/favorites/${date}`, {
                     method: 'DELETE'
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     renderFavorites(data.favorites);
@@ -1031,7 +962,6 @@
                 console.error('Erro ao remover favorito:', error);
             }
         }
-
         // Carregar data favorita
         function loadFavoriteDate(date) {
             const datePicker = document.getElementById('datePicker');
@@ -1044,9 +974,51 @@
                 }
             }
         }
+        // ✅ SIMULAÇÃO REALISTA DE INTEGRAÇÃO COM eWeLink
+        document.getElementById('trigger-ewelink-btn')?.addEventListener('click', function() {
+            const statusEl = document.getElementById('ewelink-status');
+            const logEl = document.getElementById('ewelink-log');
+            const logStatus = document.getElementById('log-status');
+            const logTimestamp = document.getElementById('log-timestamp');
+            const btn = this;
 
+            // Ativar log
+            logEl.classList.remove('hidden');
+
+            // Etapa 1: Conectando
+            btn.disabled = true;
+            statusEl.textContent = 'Conectando ao eWeLink...';
+            logStatus.textContent = 'Conectando...';
+            logStatus.className = 'ewelink-timestamp';
+
+            setTimeout(() => {
+                // Etapa 2: Enviando comando
+                statusEl.textContent = 'Enviando comando para o dispositivo...';
+                logStatus.textContent = 'Comando enviado';
+                logStatus.className = 'text-yellow-600 dark:text-yellow-400';
+
+                setTimeout(() => {
+                    // Etapa 3: Sucesso!
+                    const now = new Date().toLocaleTimeString('pt-BR');
+                    statusEl.innerHTML = '✅ <strong>Dispositivo ligado com sucesso!</strong>';
+                    statusEl.className = 'mt-2 text-sm text-green-600 dark:text-green-400';
+                    logStatus.textContent = 'Ligado';
+                    logStatus.className = 'ewelink-status-on';
+                    logTimestamp.textContent = `Ligado às ${now}`;
+
+                    showSuccessNotification(
+                        'Automação Ativada!',
+                        'Máquina de lavar ligada usando energia solar gratuita!'
+                    );
+
+                    // Reativar botão após 4s
+                    setTimeout(() => {
+                        btn.disabled = false;
+                    }, 4000);
+                }, 1200);
+            }, 800);
+        });
         // --- Sistema de Notificações ---
-
         /**
          * Mostra uma notificação para o usuário
          * @param {string} type - Tipo da notificação: 'success', 'warning', 'error', 'info'
@@ -1057,15 +1029,12 @@
         function showNotification(type, title, message, duration = 5000) {
             const container = document.getElementById('notifications-container');
             if (!container) return;
-
             // Criar ID único para a notificação
             const notificationId = 'notification-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-
             // Criar elemento da notificação
             const notification = document.createElement('div');
             notification.id = notificationId;
             notification.className = `notification notification-${type} bg-white dark:bg-slate-800 rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden`;
-
             // Ícone baseado no tipo
             let iconHtml = '';
             switch(type) {
@@ -1081,7 +1050,6 @@
                 default: // info
                     iconHtml = '<svg class="h-6 w-6 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
             }
-
             // Conteúdo da notificação
             notification.innerHTML = `
                 <div class="p-4">
@@ -1104,18 +1072,14 @@
                     </div>
                 </div>
             `;
-
             // Adicionar notificação ao container
             container.appendChild(notification);
-
             // Forçar reflow para animação
             notification.offsetHeight;
-
             // Mostrar notificação com animação
             setTimeout(() => {
                 notification.classList.add('show');
             }, 10);
-
             // Adicionar evento de fechamento
             const closeBtn = document.getElementById(`close-${notificationId}`);
             if (closeBtn) {
@@ -1123,17 +1087,14 @@
                     hideNotification(notificationId);
                 });
             }
-
             // Remover automaticamente após o tempo especificado
             if (duration > 0) {
                 setTimeout(() => {
                     hideNotification(notificationId);
                 }, duration);
             }
-
             return notificationId;
         }
-
         /**
          * Esconde uma notificação específica
          * @param {string} notificationId - ID da notificação a ser escondida
@@ -1149,7 +1110,6 @@
                 }, 300);
             }
         }
-
         /**
          * Mostra uma notificação de sucesso
          * @param {string} title - Título da notificação
@@ -1159,7 +1119,6 @@
         function showSuccessNotification(title, message, duration = 5000) {
             return showNotification('success', title, message, duration);
         }
-
         /**
          * Mostra uma notificação de aviso
          * @param {string} title - Título da notificação
@@ -1169,7 +1128,6 @@
         function showWarningNotification(title, message, duration = 5000) {
             return showNotification('warning', title, message, duration);
         }
-
         /**
          * Mostra uma notificação de erro
          * @param {string} title - Título da notificação
@@ -1179,7 +1137,6 @@
         function showErrorNotification(title, message, duration = 5000) {
             return showNotification('error', title, message, duration);
         }
-
         /**
          * Mostra uma notificação de informação
          * @param {string} title - Título da notificação
@@ -1189,19 +1146,16 @@
         function showInfoNotification(title, message, duration = 5000) {
             return showNotification('info', title, message, duration);
         }
-
         /**
          * Verifica condições para notificações automáticas
          * @param {object} kpis - KPIs atuais
          */
         function checkAutomaticNotifications(kpis) {
             if (!kpis) return;
-
             const totalEnergy = kpis.total_energy || 0;
             const peakPower = kpis.peak_power || 0;
             const socInitial = kpis.soc_initial;
             const socFinal = kpis.soc_final;
-
             // Notificação de produção excelente
             if (totalEnergy > 30) {
                 showSuccessNotification(
@@ -1210,7 +1164,6 @@
                     8000
                 );
             }
-
             // Notificação de produção baixa
             else if (totalEnergy < 5 && totalEnergy > 0) {
                 showWarningNotification(
@@ -1219,7 +1172,6 @@
                     8000
                 );
             }
-
             // Notificação de bateria baixa
             if (socFinal !== null && socFinal < 20) {
                 showWarningNotification(
@@ -1228,7 +1180,6 @@
                     10000
                 );
             }
-
             // Notificação de bateria cheia
             else if (socFinal !== null && socFinal > 95) {
                 showSuccessNotification(
@@ -1237,7 +1188,6 @@
                     6000
                 );
             }
-
             // Notificação de pico solar alto
             if (peakPower > 5000) {
                 showSuccessNotification(
@@ -1249,4 +1199,3 @@
         }
     </script>
 {% endblock %}
-#

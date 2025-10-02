@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Controle de Água - SolarView{% endblock %}
+{% block title %}Controle de Equipamentos - SolarView{% endblock %}
 
 {% block extra_css %}
     <style>
-        /* Estilos específicos para o controle de água */
+        /* Estilos específicos para o controle de equipamentos */
         .water-tank {
             width: 150px;
             height: 250px;
@@ -51,6 +51,62 @@
         .device-off {
             color: #ef4444 !important;
         }
+
+        /* Estilo para o botão de automação solar */
+        .solar-automation-btn {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .solar-automation-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+        .solar-automation-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Estilos para simular o app eWeLink */
+        .ewelink-simulation {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        .ewelink-simulation.dark {
+            background-color: #1e293b;
+            border-color: #334155;
+        }
+        .ewelink-device-name {
+            font-weight: 600;
+            color: #1e40af;
+        }
+        .ewelink-status-on {
+            color: #059669;
+            font-weight: bold;
+        }
+        .ewelink-status-off {
+            color: #dc2626;
+        }
+        .ewelink-timestamp {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        .ewelink-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
     </style>
 {% endblock %}
 
@@ -75,7 +131,7 @@
                     📊 Previsão Solar
                 </a>
                 <a href="/water-control" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
-                    💧 Controle de Água
+                    ⚙️ Controle de Equipamentos
                 </a>
                 <a href="/settings" class="px-4 py-2 bg-slate-700 text-white font-semibold rounded-lg hover:bg-slate-800 text-sm transition-colors duration-300">
                     ⚙️ Configurações
@@ -116,7 +172,7 @@
             </div>
 
             <!-- Seção expandida: Automação Inteligente -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div class="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
                     <h4 class="font-semibold text-gray-700 dark:text-gray-200">Automação Inteligente</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">A bomba liga automaticamente no pico de geração solar.</p>
@@ -126,6 +182,12 @@
                     <h4 class="font-semibold text-gray-700 dark:text-gray-200">Enchimento de Emergência</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Força o enchimento total do reservatório.</p>
                     <button id="emergency-fill-btn" class="w-full px-4 py-2 text-white font-semibold rounded-lg bg-red-500 hover:bg-red-600 transition-colors">Encher Agora</button>
+                </div>
+                <!-- ✅ NOVO: Botão de Automação Solar -->
+                <div class="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                    <h4 class="font-semibold text-gray-700 dark:text-gray-200">Automação Solar</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Liga a bomba usando energia solar gratuita.</p>
+                    <button id="solar-automation-btn" class="w-full solar-automation-btn">☀️ Usar Energia Solar</button>
                 </div>
             </div>
 
@@ -164,6 +226,25 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ✅ NOVA SEÇÃO: SIMULAÇÃO DE AUTOMAÇÃO SOLAR REALISTA -->
+            <div id="solar-automation-simulation" class="mt-8 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg hidden">
+                <h4 class="font-semibold text-gray-700 dark:text-gray-200 mb-3">⚡ Automação Solar Realista</h4>
+                <div class="flex items-center mb-2">
+                    <svg class="ewelink-icon" viewBox="0 0 24 24" fill="#fff">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <span class="ewelink-device-name">Bomba de Água – Sala de Serviço</span>
+                </div>
+                <p id="ewelink-status" class="mt-2 text-sm text-gray-500 dark:text-gray-400 min-h-[1.25rem]"></p>
+                <div id="ewelink-log" class="ewelink-simulation mt-3 hidden">
+                    <div class="flex justify-between">
+                        <span class="ewelink-device-name">Bomba de Água – Sala de Serviço</span>
+                        <span id="log-status" class="ewelink-status-off">Desligado</span>
+                    </div>
+                    <div id="log-timestamp" class="ewelink-timestamp mt-1">—</div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -176,12 +257,20 @@
             const togglePumpBtn = document.getElementById('toggle-pump-btn');
             const autoModeBtn = document.getElementById('auto-mode-btn');
             const emergencyFillBtn = document.getElementById('emergency-fill-btn');
+            const solarAutomationBtn = document.getElementById('solar-automation-btn');
 
             // Dispositivos
             const acStatusEl = document.getElementById('ac-status');
             const tvStatusEl = document.getElementById('tv-status');
             const toggleAcBtn = document.getElementById('toggle-ac-btn');
             const toggleTvBtn = document.getElementById('toggle-tv-btn');
+
+            // Simulação de Automação Solar
+            const solarAutomationSimulation = document.getElementById('solar-automation-simulation');
+            const ewelinkStatus = document.getElementById('ewelink-status');
+            const logEl = document.getElementById('ewelink-log');
+            const logStatus = document.getElementById('log-status');
+            const logTimestamp = document.getElementById('log-timestamp');
 
             let devices = {
                 ac: false,
@@ -216,6 +305,53 @@
                 });
                 const status = await response.json();
                 updateUI(status);
+            }
+
+            // ✅ FUNÇÃO ATUALIZADA: Automação Solar Realista
+            async function triggerSolarAutomation() {
+                // Mostrar a seção de simulação
+                solarAutomationSimulation.classList.remove('hidden');
+
+                // Desativar botão e mostrar carregamento
+                solarAutomationBtn.disabled = true;
+                solarAutomationBtn.textContent = 'Enviando...';
+                ewelinkStatus.textContent = 'Conectando ao eWeLink...';
+
+                // Etapa 1: Conectar
+                setTimeout(() => {
+                    ewelinkStatus.textContent = 'Conectando ao eWeLink...';
+                    logStatus.textContent = 'Conectando...';
+                    logStatus.className = 'ewelink-timestamp';
+
+                    // Etapa 2: Enviar comando
+                    setTimeout(() => {
+                        ewelinkStatus.textContent = 'Enviando comando para o dispositivo...';
+                        logStatus.textContent = 'Comando enviado';
+                        logStatus.className = 'text-yellow-600 dark:text-yellow-400';
+
+                        // Etapa 3: Sucesso!
+                        setTimeout(() => {
+                            const now = new Date().toLocaleTimeString('pt-BR');
+                            ewelinkStatus.innerHTML = '✅ <strong>Dispositivo ligado com sucesso!</strong>';
+                            ewelinkStatus.className = 'mt-2 text-sm text-green-600 dark:text-green-400';
+                            logStatus.textContent = 'Ligado';
+                            logStatus.className = 'ewelink-status-on';
+                            logTimestamp.textContent = `Ligado às ${now}`;
+
+                            // Notificação de sucesso
+                            showSuccessNotification(
+                                'Automação Ativada!',
+                                'Bomba de água ligada usando energia solar gratuita!'
+                            );
+
+                            // Reativar botão após 4s
+                            setTimeout(() => {
+                                solarAutomationBtn.disabled = false;
+                                solarAutomationBtn.textContent = '☀️ Usar Energia Solar';
+                            }, 4000);
+                        }, 1200);
+                    }, 800);
+                }, 800);
             }
 
             // Funções para dispositivos
@@ -293,6 +429,7 @@
             togglePumpBtn.addEventListener('click', togglePump);
             autoModeBtn.addEventListener('click', () => setWaterMode('auto'));
             emergencyFillBtn.addEventListener('click', () => setWaterMode('emergency'));
+            solarAutomationBtn.addEventListener('click', triggerSolarAutomation);
 
             toggleAcBtn.addEventListener('click', () => toggleDevice('ac'));
             toggleTvBtn.addEventListener('click', () => toggleDevice('tv'));
@@ -304,9 +441,47 @@
             setInterval(getWaterStatus, 5000);
 
             // Inicializa dispositivos (simulado ou via API)
-            // Aqui você pode fazer uma chamada para /api/device_status ao carregar
-            // Por simplicidade, mantemos o estado inicial como desligado
             updateDeviceUI();
+
+            // --- Sistema de Notificações ---
+            function showSuccessNotification(title, message) {
+                const container = document.getElementById('notifications-container');
+                if (!container) return;
+                const notificationId = 'notification-' + Date.now();
+                const notification = document.createElement('div');
+                notification.id = notificationId;
+                notification.className = 'notification notification-success bg-white dark:bg-slate-800 rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden';
+                notification.innerHTML = `
+                    <div class="p-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <div class="ml-3 w-0 flex-1 pt-0.5">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">${title}</p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">${message}</p>
+                            </div>
+                            <div class="ml-4 flex-shrink-0 flex">
+                                <button onclick="document.getElementById('${notificationId}').remove()" class="bg-white dark:bg-slate-700 rounded-md inline-flex text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 focus:outline-none">
+                                    <span class="sr-only">Fechar</span>
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 10);
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 5000);
+            }
         });
     </script>
 {% endblock %}
