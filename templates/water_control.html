@@ -36,6 +36,21 @@
                 transform: scale(1.1);
             }
         }
+
+        /* Estilos para dispositivos */
+        .device-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .device-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .device-on {
+            color: #10b981 !important;
+        }
+        .device-off {
+            color: #ef4444 !important;
+        }
     </style>
 {% endblock %}
 
@@ -100,7 +115,8 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Seção expandida: Automação Inteligente -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div class="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
                     <h4 class="font-semibold text-gray-700 dark:text-gray-200">Automação Inteligente</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">A bomba liga automaticamente no pico de geração solar.</p>
@@ -110,6 +126,42 @@
                     <h4 class="font-semibold text-gray-700 dark:text-gray-200">Enchimento de Emergência</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Força o enchimento total do reservatório.</p>
                     <button id="emergency-fill-btn" class="w-full px-4 py-2 text-white font-semibold rounded-lg bg-red-500 hover:bg-red-600 transition-colors">Encher Agora</button>
+                </div>
+            </div>
+
+            <!-- Nova seção: Automação de Dispositivos -->
+            <div class="mt-8">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Automação de Dispositivos</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">Controle aparelhos do seu dia a dia usando energia solar.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Ar-condicionado -->
+                    <div class="device-card p-4 bg-gray-50 dark:bg-slate-700 rounded-lg flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c.287.287.437.673.437 1.086s-.15.799-.437 1.086l-2.122 2.122a2 2 0 01-2.828 0l-5-5A2 2 0 008.586 10.172V5L8 4z" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-700 dark:text-gray-200">Ar-condicionado</h4>
+                                <p id="ac-status" class="text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
+                            </div>
+                        </div>
+                        <button id="toggle-ac-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg font-medium">Alternar</button>
+                    </div>
+
+                    <!-- Televisão -->
+                    <div class="device-card p-4 bg-gray-50 dark:bg-slate-700 rounded-lg flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-700 dark:text-gray-200">Televisão</h4>
+                                <p id="tv-status" class="text-sm text-gray-500 dark:text-gray-400">Carregando...</p>
+                            </div>
+                        </div>
+                        <button id="toggle-tv-btn" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg font-medium">Alternar</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,6 +176,17 @@
             const togglePumpBtn = document.getElementById('toggle-pump-btn');
             const autoModeBtn = document.getElementById('auto-mode-btn');
             const emergencyFillBtn = document.getElementById('emergency-fill-btn');
+
+            // Dispositivos
+            const acStatusEl = document.getElementById('ac-status');
+            const tvStatusEl = document.getElementById('tv-status');
+            const toggleAcBtn = document.getElementById('toggle-ac-btn');
+            const toggleTvBtn = document.getElementById('toggle-tv-btn');
+
+            let devices = {
+                ac: false,
+                tv: false
+            };
 
             async function getWaterStatus() {
                 try {
@@ -153,6 +216,40 @@
                 });
                 const status = await response.json();
                 updateUI(status);
+            }
+
+            // Funções para dispositivos
+            async function toggleDevice(device) {
+                const response = await fetch('/api/toggle_device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device: device })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    devices[device] = data.state;
+                    updateDeviceUI();
+                }
+            }
+
+            function updateDeviceUI() {
+                // Ar-condicionado
+                if (devices.ac) {
+                    acStatusEl.textContent = "Ligado";
+                    acStatusEl.className = "text-sm device-on";
+                } else {
+                    acStatusEl.textContent = "Desligado";
+                    acStatusEl.className = "text-sm device-off";
+                }
+
+                // Televisão
+                if (devices.tv) {
+                    tvStatusEl.textContent = "Ligado";
+                    tvStatusEl.className = "text-sm device-on";
+                } else {
+                    tvStatusEl.textContent = "Desligado";
+                    tvStatusEl.className = "text-sm device-off";
+                }
             }
 
             function updateUI(status) {
@@ -192,15 +289,24 @@
                 }
             }
 
+            // Event listeners
             togglePumpBtn.addEventListener('click', togglePump);
             autoModeBtn.addEventListener('click', () => setWaterMode('auto'));
             emergencyFillBtn.addEventListener('click', () => setWaterMode('emergency'));
+
+            toggleAcBtn.addEventListener('click', () => toggleDevice('ac'));
+            toggleTvBtn.addEventListener('click', () => toggleDevice('tv'));
 
             // Inicializa o estado
             getWaterStatus();
 
             // Simula o consumo e recarga de água a cada 5 segundos
             setInterval(getWaterStatus, 5000);
+
+            // Inicializa dispositivos (simulado ou via API)
+            // Aqui você pode fazer uma chamada para /api/device_status ao carregar
+            // Por simplicidade, mantemos o estado inicial como desligado
+            updateDeviceUI();
         });
     </script>
 {% endblock %}

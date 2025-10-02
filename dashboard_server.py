@@ -35,16 +35,22 @@ executor = ThreadPoolExecutor(max_workers=4)
 
 # 🔑 Chave da API OpenWeatherMap
 OPENWEATHER_API_KEY = "c032e66b7ccaf5e84bb2e4014e85ea38"
+
 # 📍 Coordenadas do sistema solar (ex: São Paulo)
 LATITUDE = -23.5505
 LONGITUDE = -46.6333
 
 # --- NOVO: Variável de estado para a bomba de água e o reservatório ---
-# Definida apenas UMA vez.
 WATER_STATUS = {
     "level": 75,  # Nível de água em porcentagem
     "pump_on": False,
-    "mode": "auto" # 'auto', 'manual', 'emergency'
+    "mode": "auto"  # 'auto', 'manual', 'emergency'
+}
+
+# --- NOVO: Estado dos dispositivos inteligentes ---
+DEVICES_STATUS = {
+    "ac": False,      # Ar-condicionado desligado
+    "tv": False       # Televisão desligada
 }
 
 # --- Funções Auxiliares ---
@@ -634,7 +640,6 @@ def get_alexa_weather_data(date_str: str = None):
     }
 
 # --- Rotas de Autenticação e Navegação ---
-# Definidas apenas UMA vez.
 @app.route('/')
 def home():
     if 'logged_in' in session: return redirect(url_for('dashboard'))
@@ -733,6 +738,28 @@ def set_water_mode():
         elif mode == 'emergency':
             WATER_STATUS['pump_on'] = True # Liga a bomba para encher
     return jsonify(WATER_STATUS)
+
+# --- 🔌 NOVAS ROTAS: Automação de Dispositivos ---
+@app.route('/api/device_status', methods=['GET'])
+def get_device_status():
+    if 'logged_in' not in session:
+        return jsonify({"error": "Acesso não autorizado"}), 401
+    return jsonify(DEVICES_STATUS)
+
+@app.route('/api/toggle_device', methods=['POST'])
+def toggle_device():
+    if 'logged_in' not in session:
+        return jsonify({"error": "Acesso não autorizado"}), 401
+    data = request.get_json()
+    device = data.get('device')
+    if device not in DEVICES_STATUS:
+        return jsonify({"error": "Dispositivo inválido"}), 400
+    DEVICES_STATUS[device] = not DEVICES_STATUS[device]
+    return jsonify({
+        "success": True,
+        "device": device,
+        "state": DEVICES_STATUS[device]
+    })
 
 # --- Rotas de API do Dashboard ---
 @app.route('/api/data')
@@ -1042,5 +1069,3 @@ def static_files(filename):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
-
-    ###
