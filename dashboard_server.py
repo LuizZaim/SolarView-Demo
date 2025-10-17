@@ -16,18 +16,18 @@ app = Flask(__name__, template_folder='templates')
 app.secret_key = os.urandom(24)
 
 # Credenciais padrão (sem depender de .env)
-VALID_USERNAME = "demo@goodwe.com"
-# Senha padrão segura (hash da senha "GoodweSems123!@#")
-VALID_PASSWORD_HASH = "scrypt:32768:8:1$17X25Qps6qaJDA6q$bb9f80a06295191d792794e3f5d68ec6d6199e1625eba58a540c1a831d7000e675a100b8e9093ff68bf2b2a335f329a7f66d96a83ca78e43693c37096ed78149"
+VALID_USERNAME = "grupochallenge2@gmail.com"
+# Senha padrão segura (hash da senha "Goodwe2018")
+VALID_PASSWORD_HASH = "scrypt:32768:8:1$j3yAaM32XryZKngX$5cdc1be6fb09c22d6ab66807e6997fef662df023e17da64d7ee046b3808621d342a54838965f13c33dab572d82a0cb985f12f235f031a5c8bb24f122c313d135"
 
 # ID do inversor
 INVERTER_ID = "5010KETU229W6177"
 
 client = SemsConnector(
     account=VALID_USERNAME,
-    password="GoodweSems123!@#",
+    password="Goodwe2018",
     login_region="us",
-    data_region="eu"
+    data_region="us"
 )
 
 DATA_CACHE = {}
@@ -97,13 +97,14 @@ def calculate_kpis(df: pd.DataFrame) -> dict:
         soc_series = df['Cbattery1'].dropna()
         soc_initial = soc_series.iloc[0] if not soc_series.empty else None
         soc_final = soc_series.iloc[-1] if not soc_series.empty else None
+
+    # Correção: Apenas o código Python, sem os '**'
     return {
-        "total_energy": round(total_energy, 2),
-        "peak_power": round(peak_power, 2),
+        "total_energy": float(round(total_energy, 2)),
+        "peak_power": float(round(peak_power, 2)),
         "soc_initial": int(soc_initial) if soc_initial is not None else None,
         "soc_final": int(soc_final) if soc_final is not None else None,
     }
-
 def get_weather_forecast_real(date: datetime) -> dict:
     """
     Busca previsão do tempo real usando OpenWeatherMap (One Call API).
@@ -794,6 +795,8 @@ def toggle_device():
     })
 
 # --- Rotas de API do Dashboard ---
+# --- Substitua sua função get_dashboard_data por esta ---
+
 @app.route('/api/data')
 def get_dashboard_data():
     if 'logged_in' not in session: return jsonify({"error": "Acesso não autorizado"}), 401
@@ -810,15 +813,22 @@ def get_dashboard_data():
     try:
         columns_to_fetch = ['Pac', 'Cbattery1', 'pgrid', 'Eday']
         query_datetime = datetime.combine(datetime.fromisoformat(date_str), dtime(0, 0)).strftime("%Y-%m-%d %H:%M:%S")
-        tasks = [lambda col=col: client.get_inverter_data_by_column(INVERTER_ID, col, query_datetime) for col in columns_to_fetch]
+
+        print("Tentando buscar dados reais da API GoodWe...")
+        tasks = [lambda col=col: client.get_inverter_data_by_column(INVERTER_ID, col, query_datetime) for col in
+                 columns_to_fetch]
         results = list(executor.map(lambda f: f(), tasks))
+
         all_dfs = []
         for i, col_name in enumerate(columns_to_fetch):
             df = parse_sems_timeseries(results[i], col_name)
             if not df.empty: all_dfs.append(df)
+
+        # ✅ ---- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---- ✅
+        # Se, após todas as tentativas, a lista de dados estiver vazia (falha na API),
+        # usamos o fallback com dados simulados.
         if not all_dfs:
-            # ✅ Fallback: dados mockados
-            print(f"⚠️ Dados reais não encontrados para {date_str} — usando dados simulados.")
+            print(f"⚠️ Dados reais não encontrados ou falha na API para {date_str} — usando dados simulados.")
             times = pd.date_range(start=f"{date_str} 06:00", end=f"{date_str} 18:00", freq='15min')
             df_mock = pd.DataFrame({
                 'time': times,
@@ -840,14 +850,20 @@ def get_dashboard_data():
             final_result = {"kpis": kpis, "charts": chart_data}
             DATA_CACHE[date_str] = final_result
             return jsonify(final_result)
+
+        # Se chegamos aqui, significa que a busca na API foi bem-sucedida.
+        print("Dados reais obtidos com sucesso. Processando...")
         merged_df = all_dfs[0]
         for df_next in all_dfs[1:]:
-            merged_df = pd.merge_asof(merged_df.sort_values('time'), df_next.sort_values('time'), on='time', direction='nearest', tolerance=pd.Timedelta('5min'))
+            merged_df = pd.merge_asof(merged_df.sort_values('time'), df_next.sort_values('time'), on='time',
+                                      direction='nearest', tolerance=pd.Timedelta('5min'))
+
         merged_df = merged_df.ffill().bfill()
         kpis = calculate_kpis(merged_df)
         chart_data = {'timestamps': merged_df['time'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(), 'series': {}}
         for col_name in ['Pac', 'Cbattery1', 'pgrid']:
             if col_name in merged_df.columns: chart_data['series'][col_name] = merged_df[col_name].tolist()
+
         final_result = {"kpis": kpis, "charts": chart_data}
         DATA_CACHE[date_str] = final_result
         history_data = session.get('history_data', {})
@@ -855,6 +871,7 @@ def get_dashboard_data():
         session['history_data'] = history_data
         session.modified = True
         return jsonify(final_result)
+
     except Exception as e:
         print(f"Ocorreu um erro inesperado no servidor: {e}")
         import traceback
